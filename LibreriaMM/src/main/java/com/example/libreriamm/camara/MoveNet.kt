@@ -73,7 +73,7 @@ class MoveNet(private val interpreter: Interpreter, private var gpuDelegate: Gpu
                 Device.NNAPI -> options.setUseNNAPI(true)
             }
 
-            val inputStream: InputStream = context.resources.openRawResource(R.raw.movenet_lightning)
+            val inputStream: InputStream = context.assets.open(LIGHTNING_FILENAME)
 
             // Leer el archivo en un buffer de bytes
             val buffer = ByteArray(inputStream.available())
@@ -81,18 +81,16 @@ class MoveNet(private val interpreter: Interpreter, private var gpuDelegate: Gpu
             inputStream.close()
 
             // Crear el interpreter
-            val interpreter = Interpreter(ByteBuffer.wrap(buffer), options)
             return MoveNet(
 
                 // Crear el interpreter
 
-                /*Interpreter(
+                Interpreter(
                         FileUtil.loadMappedFile(
                             context,
                             if (modelType == ModelType.Lightning) LIGHTNING_FILENAME else THUNDER_FILENAME
                         ), options
-                    ),*/
-                Interpreter(ByteBuffer.wrap(buffer), options),
+                    ),
                 gpuDelegate
             )
         }
