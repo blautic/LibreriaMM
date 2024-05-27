@@ -13,8 +13,8 @@ class GenericDevice(
     val typeSensor: TypeSensor,
 ) : BluetoothPeripheralCallback, KoinComponent {
 
-    val ACC_SCALE_4G = 4f
-    val GYR_SCALE_1000 = 1000f
+    val ACC_SCALE_4G = 4f / 32767f
+    val GYR_SCALE_1000 = 1000f / 32767f
 
     object BluetoothUUIDs {
         const val UUID_TAG_OPER = "0000ff35-0000-1000-8000-00805f9b34fb"

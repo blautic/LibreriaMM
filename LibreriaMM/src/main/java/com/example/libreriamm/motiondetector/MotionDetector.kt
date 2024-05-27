@@ -1,8 +1,10 @@
 package com.example.libreriamm.motiondetector
 
+import android.content.Context
 import android.util.Log
 import com.example.libreriamm.camara.Person
 import com.example.libreriamm.entity.Model
+import com.google.firebase.FirebaseApp
 import com.google.firebase.ml.modeldownloader.CustomModel
 import com.google.firebase.ml.modeldownloader.CustomModelDownloadConditions
 import com.google.firebase.ml.modeldownloader.DownloadType
@@ -24,10 +26,10 @@ data class MoveNetData(
     var sample: Int
 )
 
-class MotionDetector(private val model: Model) {
+class MotionDetector(private val model: Model, private val tipo: Int) {
 
     interface MotionDetectorListener {
-        fun onCorrectMotionRecognized(correctProb: Float)
+        fun onCorrectMotionRecognized(correctProb: Float, datasList: Array<Array<Array<Array<FloatArray>>>>)
         fun onOutputScores(outputScores: FloatArray)
     }
 
@@ -62,24 +64,34 @@ class MotionDetector(private val model: Model) {
     fun start() {
         val conditions = CustomModelDownloadConditions.Builder().build()
         FirebaseModelDownloader.getInstance()
-            .getModel("mm_" + model.id.toString(), DownloadType.LATEST_MODEL, conditions)
+            .getModel((if(tipo == 0) "mm_" else "mmr_") + model.id.toString(), DownloadType.LATEST_MODEL, conditions)
             .addOnSuccessListener { customModel: CustomModel ->
                 val modelFile = customModel.file
+                Log.d("MMCORE", "Temporary file ${modelFile != null} - ${modelFile?.absolutePath}")
                 modelFile?.let { file ->
+                    Log.d("MMCORE", "Inicializando ${file.name}")
                     coroutineScope.launch {
                         synchronized(lock) {
+                            Log.d("MMCORE", "Lock adquired")
                             val compatList = CompatibilityList()
                             options = Interpreter.Options()
+                            Log.d("MMCORE", "Options create ${options != null}")
                             if (compatList.isDelegateSupportedOnThisDevice) {
+                                Log.d("MMCORE", "GPU Accelerate available")
                                 val delegateOptions = compatList.bestOptionsForThisDevice
                                 options!!.addDelegate(GpuDelegate(delegateOptions))
+                                Log.d("MMCORE", "GPU Accelerate available ready")
                             } else {
+                                Log.d("MMCORE", "GPU Accelerate not available")
                                 // Fallback to CPU execution if GPU acceleration is not available
                                 options!!.setNumThreads(NUM_LITE_THREADS)
+                                Log.d("MMCORE", "GPU Accelerate not available ready")
                             }
+                            Log.d("MMCORE", "Creating interpreter...")
 
                             inferenceInterface = Interpreter(file, options)
                             isStarted = true
+                            Log.d("MMCORE", "Started resolve: ${isStarted}")
                         }
                     }
                 }
@@ -99,17 +111,35 @@ class MotionDetector(private val model: Model) {
 
     fun inference(datasList: Array<Array<Array<Array<FloatArray>>>>) {
         synchronized(lock) {
+            //Log.d("MMCORE", "inferencia activa... $isStarted")
             inferenceInterface?.takeIf { isStarted }?.let { interpreter ->
-                var mapOfIndicesToOutputs: Map<Int, Array<FloatArray>> = mapOf(0 to arrayOf(floatArrayOf(0f, 0f)))
-                interpreter.runForMultipleInputsOutputs(datasList, mapOfIndicesToOutputs)
-                Log.d("Resultados", "${mapOfIndicesToOutputs[0]?.get(0)?.get(0)} || ${mapOfIndicesToOutputs[0]?.get(0)?.get(1)}")
-                var totalProb = 0f
-                mapOfIndicesToOutputs[0]?.get(0)?.forEach { prob -> totalProb += prob }
-                val scores = FloatArray(model.movements.size)
-                for (i in 0 until model.movements.size) {
-                    scores[i] = ((mapOfIndicesToOutputs[0]?.get(0)?.get(i) ?: 0f) * 100f) / totalProb
+                if(tipo == 0) {
+                    //Log.d("MMCORE", "Calculando inferencia... ${datasList.size}-${datasList[0].size}-${datasList[0][0].size}-${datasList[0][0][0].size}-${datasList[0][0][0][0].size}")
+                    var mapOfIndicesToOutputs: Map<Int, Array<FloatArray>> =
+                        mapOf(0 to arrayOf(floatArrayOf(0f, 0f)))
+                    interpreter.runForMultipleInputsOutputs(datasList, mapOfIndicesToOutputs)
+                    //Log.d("Resultados", "${mapOfIndicesToOutputs[0]?.get(0)?.get(0)} || ${mapOfIndicesToOutputs[0]?.get(0)?.get(1)}")
+                    var totalProb = 0f
+                    mapOfIndicesToOutputs[0]?.get(0)?.forEach { prob -> totalProb += prob }
+                    var scores = FloatArray(model.movements.size)
+                    for (i in 0 until model.movements.size) {
+                        scores[i] =
+                            ((mapOfIndicesToOutputs[0]?.get(0)?.get(i) ?: 0f) * 100f) / totalProb
+                    }
+                    scores = scores.reversedArray()
+                    if(scores[0] > 80){
+                        motionDetectorListener?.onCorrectMotionRecognized(scores[0], datasList)
+                    }
+                    motionDetectorListener?.onOutputScores(scores)
+                }else{
+                    var mapOfIndicesToOutputs: Map<Int, Array<FloatArray>> = mapOf(0 to arrayOf(floatArrayOf(0f, 0f, 0f)))
+                    interpreter.runForMultipleInputsOutputs(datasList, mapOfIndicesToOutputs)
+                    val scores = FloatArray(3)
+                    for (i in 0 until 3) {
+                        scores[i] = (mapOfIndicesToOutputs[0]?.get(0)?.get(i) ?: 0f)
+                    }
+                    motionDetectorListener?.onOutputScores(scores)
                 }
-                motionDetectorListener?.onOutputScores(scores)
             }
         }
     }

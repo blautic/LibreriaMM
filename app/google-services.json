@@ -1,0 +1,126 @@
+{
+  "project_info": {
+    "project_number": "240400807726",
+    "project_id": "blautic-mm",
+    "storage_bucket": "blautic-mm.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:240400807726:android:cf8d66cb0d7ce3614b2cbf",
+        "android_client_info": {
+          "package_name": "com.blautic.exermeter.android"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "240400807726-be3gvqdej701p9nfqpfp8k1oqsrcri9s.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBDqWR0Go4L-pPOgbmThlcYQ68fWzrYjGw"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "240400807726-be3gvqdej701p9nfqpfp8k1oqsrcri9s.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:240400807726:android:b820e6d70159e6154b2cbf",
+        "android_client_info": {
+          "package_name": "com.blautic.pikkucam"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "240400807726-be3gvqdej701p9nfqpfp8k1oqsrcri9s.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBDqWR0Go4L-pPOgbmThlcYQ68fWzrYjGw"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "240400807726-be3gvqdej701p9nfqpfp8k1oqsrcri9s.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:240400807726:android:6774a69f7ac564204b2cbf",
+        "android_client_info": {
+          "package_name": "com.blautic.trainingapp.android"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "240400807726-be3gvqdej701p9nfqpfp8k1oqsrcri9s.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBDqWR0Go4L-pPOgbmThlcYQ68fWzrYjGw"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "240400807726-be3gvqdej701p9nfqpfp8k1oqsrcri9s.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:240400807726:android:187803173026f6604b2cbf",
+        "android_client_info": {
+          "package_name": "com.example.libreriaprueba"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "240400807726-be3gvqdej701p9nfqpfp8k1oqsrcri9s.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBDqWR0Go4L-pPOgbmThlcYQ68fWzrYjGw"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "240400807726-be3gvqdej701p9nfqpfp8k1oqsrcri9s.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
