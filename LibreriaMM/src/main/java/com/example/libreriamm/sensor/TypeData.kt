@@ -94,4 +94,10 @@ enum class TypeData(
         44),
     RIGHT_ANKLE_Y(10,
         45),
+
+    // Extras
+    AI(1,
+        101),
+    HR(1,
+        102),
 }

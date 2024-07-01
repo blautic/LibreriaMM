@@ -17,6 +17,7 @@ import com.example.libreriamm.camara.Person
 import com.example.libreriamm.camara.PointF
 import com.example.libreriamm.camara.YuvToRgbConverter
 import com.example.libreriamm.entity.Model
+import com.example.libreriamm.entity.Position
 import com.example.libreriamm.motiondetector.MotionDetector
 import com.example.libreriamm.sensor.SensorsManager
 import com.example.libreriamm.sensor.TypeData
@@ -40,7 +41,7 @@ import kotlin.math.sqrt
 @RequiresApi(Build.VERSION_CODES.O)
 @ExperimentalGetImage
 class MMCore(val context: Context, val coroutineContext: CoroutineContext) {
-    data class SensorPosicion(val tipoSensor: MutableList<TypeSensor>, val posicion: Int)
+    data class SensorPosicion(var tipoSensor: MutableList<TypeSensor>, val posicion: Int)
 
     private var duration = 1
     private var sensoresPosicion: MutableList<SensorPosicion> = mutableListOf()
@@ -61,6 +62,8 @@ class MMCore(val context: Context, val coroutineContext: CoroutineContext) {
     private val motionDetectorCorrectFlow get() = _motionDetectorCorrectFlow.asStateFlow()
     private val _motionDetectorFlow = MutableStateFlow<Pair<Int, List<Float>>?>(null)
     private val motionDetectorFlow get() = _motionDetectorFlow.asStateFlow()
+    private val _sensorFlow = MutableStateFlow<Pair<Int, Float>?>(null)
+    private val sensorFlow get() = _sensorFlow.asStateFlow()
     private val scope = CoroutineScope(coroutineContext)
     private var started = false
     private var series: MutableList<MutableList<Array<Array<Array<Array<FloatArray>>>>>> = mutableListOf()
@@ -206,7 +209,10 @@ class MMCore(val context: Context, val coroutineContext: CoroutineContext) {
         val result = mutableListOf<Person>()
 
         while (index < size) {
-            val aux = if(index.roundToInt() >= size) size-1 else index.roundToInt()
+            var aux = index.roundToInt()
+            if(aux >= list.size) {
+                aux = (list.size - 1)
+            }
             result.add(list[aux])
             index += step
 
@@ -363,6 +369,10 @@ class MMCore(val context: Context, val coroutineContext: CoroutineContext) {
     fun setmodels(models: List<Model>): Boolean{
         if(started){
             return false
+        }
+        motionDetectors.forEach{
+            it.first.stop()
+            it.second.stop()
         }
         motionDetectors.clear()
         series.clear()
@@ -716,4 +726,33 @@ class MMCore(val context: Context, val coroutineContext: CoroutineContext) {
         }
         imageProxy.close()
     }
+    fun addGenericSensor(positionId: Int, sensores: List<TypeData>){
+        val listaSens:MutableList<TypeSensor> = mutableListOf()
+        val emg = sensores.contains(TypeData.Emg1) ||
+                sensores.contains(TypeData.Emg2) ||
+                sensores.contains(TypeData.Emg3) ||
+                sensores.contains(TypeData.Emg4)
+        val ecg = sensores.contains(TypeData.Ecg) ||
+                sensores.contains(TypeData.HR)
+        val mpu = sensores.contains(TypeData.AccX) ||
+                sensores.contains(TypeData.AccY) ||
+                sensores.contains(TypeData.AccZ) ||
+                sensores.contains(TypeData.GyrX) ||
+                sensores.contains(TypeData.GyrY) ||
+                sensores.contains(TypeData.GyrZ) ||
+                sensores.contains(TypeData.AI)
+        if (mpu && !ecg && !emg) {
+            listaSens.add(TypeSensor.PIKKU)
+        }
+        if (mpu || ecg || emg) {
+            listaSens.add(TypeSensor.BIO2)
+        }
+        val position = sensoresPosicion.filter { it.posicion == positionId }.firstOrNull()
+        if(position != null){
+            sensoresPosicion[sensoresPosicion.indexOf(position)].tipoSensor = listaSens
+        }else{
+            sensoresPosicion.add(SensorPosicion(tipoSensor = listaSens, posicion = positionId))
+        }
+    }
+    fun onSensorChange() = sensorFlow
 }

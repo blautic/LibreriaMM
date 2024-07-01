@@ -47,4 +47,6 @@ data class Model(
     val fldBPublico: Int = 0,
     @SerialName("tuyo")
     val tuyo: Int = 1,
+    @SerialName("fldSToken")
+    val fldSToken: String? = null,
 ): KMMParcelable
