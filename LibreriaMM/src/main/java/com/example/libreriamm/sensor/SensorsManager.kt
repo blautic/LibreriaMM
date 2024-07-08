@@ -22,6 +22,9 @@ class SensorsManager(val context: Context) : BluetoothManagerCallback {
     fun setListSize(size: Int){
         devices = MutableList(size) { GenericDevice(numDevice = 0, address = "", typeSensor = TypeSensor.PIKKU) }
     }
+    fun addSensor(){
+        devices.add(GenericDevice(numDevice = 0, address = "", typeSensor = TypeSensor.PIKKU))
+    }
 
     fun startScan() {
         bluetoothManager.startScan()

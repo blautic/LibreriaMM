@@ -3,6 +3,7 @@ package com.example.libreriaprueba
 import android.os.Build
 import android.os.Bundle
 import android.util.Log
+import android.view.SurfaceView
 import android.widget.ProgressBar
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -36,6 +37,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.viewinterop.AndroidView
 import androidx.lifecycle.asLiveData
 import com.example.libreriamm.MMCore
 import com.example.libreriamm.entity.Device
@@ -45,6 +47,7 @@ import com.example.libreriamm.entity.Movement
 import com.example.libreriamm.entity.Position
 import com.example.libreriamm.entity.Version
 import com.example.libreriamm.sensor.ConnectionState
+import com.example.libreriamm.sensor.TypeData
 import com.example.libreriaprueba.ui.theme.LibreriaPruebaTheme
 import com.google.firebase.FirebaseApp
 import kotlinx.coroutines.CoroutineScope
@@ -87,6 +90,7 @@ fun Greeting(name: String, modifier: Modifier = Modifier) {
 @ExperimentalGetImage
 fun GreetingPreview() {
     var status by remember { mutableStateOf(0) }
+    var status2 by remember { mutableStateOf(0) }
     Log.d("Sensores", "START")
     val context = LocalContext.current
     val coroutineContext: CoroutineContext = SupervisorJob() + Dispatchers.Main
@@ -96,6 +100,7 @@ fun GreetingPreview() {
     var respuesta by remember { mutableFloatStateOf(0.5f) }
     var duracion by remember { mutableFloatStateOf(0f) }
     mmCore.setmodels(listOf(reves))
+    mmCore.addGenericSensor(7, listOf(TypeData.AccX))
     Log.d("TipoSensores", "${mmCore.getTipoSensores()}")
     Log.d("LabelsModels", "${mmCore.getLabels(0)}")
     mmCore.onMotionDetectorChange().asLiveData().observeForever{
@@ -111,17 +116,39 @@ fun GreetingPreview() {
     }
     mmCore.onConnectionChange().asLiveData().observeForever{
         if (it != null) {
-            when(it.second){
-                ConnectionState.DISCONNECTED -> status = 0
-                ConnectionState.CONNECTING -> status = 1
-                ConnectionState.CONNECTED -> {
-                    status = 2
-                    val tipo = mmCore.getSensorType(it.first)
-                    Log.d("TipoSensor", tipo.name)
-                    mmCore.startMotionDetector()
+            when(it.first) {
+                0 -> when (it.second) {
+                    ConnectionState.DISCONNECTED -> {
+                        status = 0
+                        mmCore.startMotionDetector()
+                    }
+                    ConnectionState.CONNECTING -> status = 1
+                    ConnectionState.CONNECTED -> {
+                        status = 2
+                        val tipo = mmCore.getSensorType(it.first)
+                        Log.d("TipoSensor", tipo.name)
+                        mmCore.startMotionDetector()
+                    }
+
+                    ConnectionState.DISCONNECTING -> status = 1
+                    ConnectionState.FAILED -> status = 0
                 }
-                ConnectionState.DISCONNECTING -> status = 1
-                ConnectionState.FAILED -> status = 0
+
+                else -> when (it.second) {
+                    ConnectionState.DISCONNECTED -> status2 = 0
+                    ConnectionState.CONNECTING -> status2 = 1
+                    ConnectionState.CONNECTED -> {
+                        status2 = 2
+                        val tipo = mmCore.getSensorType(it.first)
+                        Log.d("TipoSensor", tipo.name)
+                        mmCore.onSensorChange(1, TypeData.AccX).asLiveData().observeForever{
+                            Log.d("ACC X", "${it.first}")
+                        }
+                    }
+
+                    ConnectionState.DISCONNECTING -> status2 = 1
+                    ConnectionState.FAILED -> status2 = 0
+                }
             }
         }
     }
@@ -155,6 +182,30 @@ fun GreetingPreview() {
                     painter = painterResource(id = R.drawable.pikku),
                     contentDescription = null,
                     tint = if (status == 0) Color.Black else if (status == 1) Color.Yellow else Color.Green
+                )
+            }
+            Button(onClick = {
+                when (status2) {
+                    0 -> {
+                        mmCore.startConnectDevice(1)
+                        status2 = 1
+                    }
+
+                    1 -> {
+                        mmCore.stopConnectDevice()
+                        status2 = 0
+                    }
+
+                    2 -> {
+                        mmCore.disconnectAll()
+                        status2 = 0
+                    }
+                }
+            }, modifier = Modifier.wrapContentHeight()) {
+                Icon(
+                    painter = painterResource(id = R.drawable.pikku),
+                    contentDescription = null,
+                    tint = if (status2 == 0) Color.Black else if (status2 == 1) Color.Yellow else Color.Green
                 )
             }
             Spacer(modifier = Modifier.height(10.dp))

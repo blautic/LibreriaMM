@@ -27,6 +27,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
@@ -61,12 +62,15 @@ class MMCore(val context: Context, val coroutineContext: CoroutineContext) {
     private val _motionDetectorCorrectFlow = MutableStateFlow<Pair<Int, Float>?>(null)
     private val motionDetectorCorrectFlow get() = _motionDetectorCorrectFlow.asStateFlow()
     private val _motionDetectorFlow = MutableStateFlow<Pair<Int, List<Float>>?>(null)
+    private val dataInferedFlow get() = _dataInferedFlow.asStateFlow()
+    private val _dataInferedFlow = MutableStateFlow<Array<Array<Array<Array<FloatArray>>>>?>(null)
     private val motionDetectorFlow get() = _motionDetectorFlow.asStateFlow()
-    private val _sensorFlow = MutableStateFlow<Pair<Int, Float>?>(null)
-    private val sensorFlow get() = _sensorFlow.asStateFlow()
+    private val _sensorFlow: MutableList<MutableStateFlow<Pair<Int, Float>?>> = mutableListOf()
+    private val sensorFlow get() = _sensorFlow
     private val scope = CoroutineScope(coroutineContext)
     private var started = false
     private var series: MutableList<MutableList<Array<Array<Array<Array<FloatArray>>>>>> = mutableListOf()
+
 
 
     private fun setDuration(duration: Int){
@@ -367,9 +371,6 @@ class MMCore(val context: Context, val coroutineContext: CoroutineContext) {
     }
 
     fun setmodels(models: List<Model>): Boolean{
-        if(started){
-            return false
-        }
         motionDetectors.forEach{
             it.first.stop()
             it.second.stop()
@@ -601,6 +602,7 @@ class MMCore(val context: Context, val coroutineContext: CoroutineContext) {
                     }
                     //Timber.d("Estado Inferencia: $outputScore - $estadoInferencia - $maxOutput")
                     if(salida.isNotEmpty()){
+                        _dataInferedFlow.value = series[index][series[index].size/2]
                         _motionDetectorFlow.value = Pair(index, salida)
                         if(salida[0] < 0.5){
                             if(series[index].isNotEmpty()){
@@ -683,6 +685,17 @@ class MMCore(val context: Context, val coroutineContext: CoroutineContext) {
     fun onConnectionChange() = deviceManager.connectionChange
     fun onMotionDetectorChange() = motionDetectorFlow
     fun onMotionDetectorCorrectChange() = motionDetectorCorrectFlow
+
+    fun onSensorChange(index: Int, typedata: TypeData): StateFlow<Pair<Float, Int>> {
+        deviceManager.devices[index]!!.sensorDatas[deviceManager.devices[index]!!.typeSensor.Sensors.indexOf(
+            typedata
+        )].enableFlow = true
+        Log.d("LECTURA", "HAbilitada")
+        return deviceManager.devices[index]!!.sensorDatas[deviceManager.devices[index]!!.typeSensor.Sensors.indexOf(
+            typedata
+        )].dataFlow
+    }
+    fun onDataInferedChange() = dataInferedFlow
     fun setFrontCamera(front: Boolean){
         frontCamera = front
     }
@@ -752,7 +765,7 @@ class MMCore(val context: Context, val coroutineContext: CoroutineContext) {
             sensoresPosicion[sensoresPosicion.indexOf(position)].tipoSensor = listaSens
         }else{
             sensoresPosicion.add(SensorPosicion(tipoSensor = listaSens, posicion = positionId))
+            deviceManager.addSensor()
         }
     }
-    fun onSensorChange() = sensorFlow
 }

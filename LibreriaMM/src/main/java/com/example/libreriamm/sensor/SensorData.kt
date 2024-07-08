@@ -1,5 +1,6 @@
 package com.example.libreriamm.sensor
 
+import android.util.Log
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 
@@ -8,8 +9,11 @@ class SensorData {
     val dataFlow: StateFlow<Pair<Float, Int>> get() = _dataFlow
     val DataCache = mutableListOf<Pair<Float, Int>>()
     var enableCache = false
+    var enableFlow = false
     fun add(valor: Float, sample: Int){
-        _dataFlow.value = Pair(valor, sample)
+        if(enableFlow) {
+            _dataFlow.value = Pair(valor, sample)
+        }
         if(enableCache){
             DataCache.add(Pair(valor, sample))
         }

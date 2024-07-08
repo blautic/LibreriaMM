@@ -126,16 +126,18 @@ class MotionDetector(private val model: Model, private val tipo: Int) {
                         scores[i] =
                             ((mapOfIndicesToOutputs[0]?.get(0)?.get(i) ?: 0f) * 100f) / totalProb
                     }
-                    scores = scores.reversedArray()
+                    if(model.movements[0].fldSLabel == "Other" || model.movements[0].fldSLabel == "other"){
+                        scores = scores.reversedArray()
+                    }
                     if(scores[0] > 80){
                         motionDetectorListener?.onCorrectMotionRecognized(scores[0], datasList)
                     }
                     motionDetectorListener?.onOutputScores(scores)
                 }else{
-                    var mapOfIndicesToOutputs: Map<Int, Array<FloatArray>> = mapOf(0 to arrayOf(floatArrayOf(0f, 0f, 0f)))
+                    var mapOfIndicesToOutputs: Map<Int, Array<FloatArray>> = mapOf(0 to arrayOf(floatArrayOf(0f, 0f, 0f, 0f)))
                     interpreter.runForMultipleInputsOutputs(datasList, mapOfIndicesToOutputs)
-                    val scores = FloatArray(3)
-                    for (i in 0 until 3) {
+                    val scores = FloatArray(4)
+                    for (i in scores.indices) {
                         scores[i] = (mapOfIndicesToOutputs[0]?.get(0)?.get(i) ?: 0f)
                     }
                     motionDetectorListener?.onOutputScores(scores)
@@ -163,9 +165,6 @@ class MotionDetector(private val model: Model, private val tipo: Int) {
         }
 
         //resultAUX = result
-
-        //TODO SIEMPRE ES EL DEVICE 0 PORQUE EN ESTE MODELO SOLO HAY UN DEVICE
-        //TODO NO HACE FALTA QUE NORMALICE NADA, YO LO NORMALIZO EN LA SALIDA DE LA INFERENCIA
 
         coroutineScope.launch {
             processData()

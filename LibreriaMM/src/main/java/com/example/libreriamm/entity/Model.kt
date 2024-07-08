@@ -47,6 +47,14 @@ data class Model(
     val fldBPublico: Int = 0,
     @SerialName("tuyo")
     val tuyo: Int = 1,
+    @SerialName("fldBRegresivo")
+    val fldBRegresivo: Int = 0,
+    @SerialName("fldFMinValor")
+    val minValor: Float = 0f,
+    @SerialName("fldFMaxValor")
+    val maxValor: Float = 1f,
+    @SerialName("fldSNomValor")
+    val nomValor: String = "",
     @SerialName("fldSToken")
     val fldSToken: String? = null,
 ): KMMParcelable
