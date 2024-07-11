@@ -120,14 +120,14 @@ fun GreetingPreview() {
                 0 -> when (it.second) {
                     ConnectionState.DISCONNECTED -> {
                         status = 0
-                        mmCore.startMotionDetector()
                     }
                     ConnectionState.CONNECTING -> status = 1
                     ConnectionState.CONNECTED -> {
                         status = 2
                         val tipo = mmCore.getSensorType(it.first)
                         Log.d("TipoSensor", tipo.name)
-                        mmCore.startMotionDetector()
+                        mmCore.enableAllCache(true)
+                        //mmCore.startMotionDetectorIndex(listOf(0))
                     }
 
                     ConnectionState.DISCONNECTING -> status = 1
@@ -144,6 +144,7 @@ fun GreetingPreview() {
                         mmCore.onSensorChange(1, TypeData.AccX).asLiveData().observeForever{
                             Log.d("ACC X", "${it.first}")
                         }
+                        mmCore.enableAllCache(true)
                     }
 
                     ConnectionState.DISCONNECTING -> status2 = 1
@@ -160,6 +161,14 @@ fun GreetingPreview() {
             horizontalAlignment = Alignment.Start,
             verticalArrangement = Arrangement.Bottom
         ) {
+            Button(onClick = {
+                             mmCore.getCapture(0)
+            }, modifier = Modifier.wrapContentHeight()) {
+                Icon(
+                    painter = painterResource(id = android.R.drawable.ic_dialog_alert),
+                    contentDescription = null
+                )
+            }
             Button(onClick = {
                 when (status) {
                     0 -> {

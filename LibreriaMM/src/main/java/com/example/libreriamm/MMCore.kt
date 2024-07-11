@@ -91,7 +91,7 @@ class MMCore(val context: Context, val coroutineContext: CoroutineContext) {
     }
     private fun enableCache(numDevice: Int, numSensor: Int, enable: Boolean) =
         deviceManager.getSensorNum(numDevice)?.enableCache(numSensor, enable)
-    private fun enableAllCache(enable: Boolean) =
+    fun enableAllCache(enable: Boolean) =
         deviceManager.devices.forEach { dev ->
             dev?.enableAllCache(enable)
         }
@@ -450,6 +450,13 @@ class MMCore(val context: Context, val coroutineContext: CoroutineContext) {
             true
         }
     }
+    private fun interpolarPersona(p1: Person, p2: Person): Person{
+        val keypoints = mutableListOf<KeyPoint>()
+        p1.keyPoints.forEachIndexed{index, kp ->
+            keypoints.add(KeyPoint(bodyPart = kp.bodyPart, score = (kp.score + p2.keyPoints[index].score)/2f, coordinate = PointF(x=(kp.coordinate.x + p2.keyPoints[index].coordinate.x)/2f, y=((kp.coordinate.y + p2.keyPoints[index].coordinate.y)/2f))))
+        }
+        return Person(score=(p1.score + p2.score)/2f, keyPoints = keypoints)
+    }
     fun getCapture(index: Int): List<Triple<Int, List<Pair<Int, Float>>, List<Triple<Int, Float, Float>>>>{
         var datas: MutableList<Triple<Int, List<Pair<Int, Float>>, List<Triple<Int, Float, Float>>>> = mutableListOf()
         var data: List<Pair<Int, Float>> = emptyList()
@@ -488,11 +495,23 @@ class MMCore(val context: Context, val coroutineContext: CoroutineContext) {
                     datas.add(Triple(it.id, data, listOf()))
                     data = emptyList()
                 } else {
-                    if (moveNetCache.size < 10 * model.fldNDuration) {
+                    Log.d("MMCORE-LOG", "MovenetCache Size: ${moveNetCacheRaw.size}")
+                    if (moveNetCacheRaw.size * 2 < 10 * model.fldNDuration) {
                         return listOf()
                     }
+                    if (moveNetCacheRaw.size < 10 * model.fldNDuration) {
+                        val nuevaMoveNetCache = mutableListOf<Person>()
+                        for(i in 0 until moveNetCacheRaw.size - 1){
+                            val p1 = moveNetCacheRaw[i]
+                            val p2 = moveNetCacheRaw[i+1]
+                            nuevaMoveNetCache.add(p1)
+                            nuevaMoveNetCache.add(interpolarPersona(p1, p2))
+                        }
+                        nuevaMoveNetCache.add(moveNetCacheRaw.last())
+                        moveNetCacheRaw = nuevaMoveNetCache
+                    }
                     val resultsRaw: MutableList<Person> =
-                        extractUniformElements(moveNetCache, model)
+                        extractUniformElements(moveNetCacheRaw, model)
                     var acumuladoX = 0f
                     var acumuladoY = 0f
                     resultsRaw.forEachIndexed { index, person ->
@@ -580,12 +599,24 @@ class MMCore(val context: Context, val coroutineContext: CoroutineContext) {
         return res
     }
     fun startMotionDetector(){
-        if(motionDetectors.size <= 0){
+        stopMotionDetector()
+        for(i in 0..motionDetectors.size){
+            startMotionDetectorIndexPrivate(i)
+        }
+    }
+    fun startMotionDetectorIndex(indexs: List<Int>){
+        stopMotionDetector()
+        indexs.forEach{
+            startMotionDetectorIndexPrivate(it)
+        }
+    }
+    private fun startMotionDetectorIndexPrivate(index: Int){
+        if(motionDetectors.size <= index){
             return
         }
         started = true
         enableAllCache(true)
-        motionDetectors.forEachIndexed { index, motionDetector ->
+        motionDetectors[index].let { motionDetector ->
             Log.d("MOTIONDETECTOR", "Creando listener")
             motionDetector.first.setMotionDetectorListener(object :
                 MotionDetector.MotionDetectorListener {
@@ -633,7 +664,7 @@ class MMCore(val context: Context, val coroutineContext: CoroutineContext) {
         }
         scope.launch {
             Log.d("MMCORE", "SCOPE LAUNCHED")
-            motionDetectors.forEach { motionDetector ->
+            motionDetectors[index].let { motionDetector ->
                 Log.d("MMCORE", "Iniciando md")
                 motionDetector.first.start()
                 motionDetector.second.start()
@@ -687,7 +718,8 @@ class MMCore(val context: Context, val coroutineContext: CoroutineContext) {
     fun onMotionDetectorCorrectChange() = motionDetectorCorrectFlow
 
     fun onSensorChange(index: Int, typedata: TypeData): StateFlow<Pair<Float, Int>> {
-        deviceManager.devices[index]!!.sensorDatas[deviceManager.devices[index]!!.typeSensor.Sensors.indexOf(
+        val id = sensoresPosicion.indexOf(sensoresPosicion.first { it.posicion == index })
+        deviceManager.devices[id]!!.sensorDatas[deviceManager.devices[id]!!.typeSensor.Sensors.indexOf(
             typedata
         )].enableFlow = true
         Log.d("LECTURA", "HAbilitada")
@@ -737,7 +769,7 @@ class MMCore(val context: Context, val coroutineContext: CoroutineContext) {
                 moveNetCacheRaw.removeAt(0)
             }
         }
-        imageProxy.close()
+        //imageProxy.close()
     }
     fun addGenericSensor(positionId: Int, sensores: List<TypeData>){
         val listaSens:MutableList<TypeSensor> = mutableListOf()
