@@ -11,6 +11,7 @@ import com.google.firebase.ml.modeldownloader.DownloadType
 import com.google.firebase.ml.modeldownloader.FirebaseModelDownloader
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.launch
 import org.tensorflow.lite.Interpreter
@@ -34,6 +35,7 @@ class MotionDetector(private val model: Model, private val tipo: Int) {
     }
 
     private val coroutineScope = CoroutineScope(Dispatchers.Main)
+    private var currentJob: Job? = null
 
     private val lock = Any()
 
@@ -70,7 +72,7 @@ class MotionDetector(private val model: Model, private val tipo: Int) {
                 Log.d("MMCORE", "Temporary file ${modelFile != null} - ${modelFile?.absolutePath}")
                 modelFile?.let { file ->
                     Log.d("MMCORE", "Inicializando ${file.name}")
-                    coroutineScope.launch {
+                    currentJob = coroutineScope.launch {
                         synchronized(lock) {
                             Log.d("MMCORE", "Lock adquired")
                             val compatList = CompatibilityList()
@@ -99,7 +101,9 @@ class MotionDetector(private val model: Model, private val tipo: Int) {
     }
 
     fun stop() {
-        coroutineScope.cancel()
+        if(currentJob!= null) {
+            currentJob!!.cancel()
+        }
         synchronized(lock) {
             isStarted = false
         }
@@ -111,10 +115,11 @@ class MotionDetector(private val model: Model, private val tipo: Int) {
 
     fun inference(datasList: Array<Array<Array<Array<FloatArray>>>>) {
         synchronized(lock) {
-            //Log.d("MMCORE", "inferencia activa... $isStarted")
+            Log.d("MMCORE", "inferencia activa... $isStarted")
             inferenceInterface?.takeIf { isStarted }?.let { interpreter ->
                 if(tipo == 0) {
-                    //Log.d("MMCORE", "Calculando inferencia... ${datasList.size}-${datasList[0].size}-${datasList[0][0].size}-${datasList[0][0][0].size}-${datasList[0][0][0][0].size}")
+
+                    Log.d("MMCORE", "Calculando inferencia tipo 1")
                     var mapOfIndicesToOutputs: Map<Int, Array<FloatArray>> =
                         mapOf(0 to arrayOf(floatArrayOf(0f, 0f)))
                     interpreter.runForMultipleInputsOutputs(datasList, mapOfIndicesToOutputs)
@@ -129,11 +134,12 @@ class MotionDetector(private val model: Model, private val tipo: Int) {
                     if(model.movements[0].fldSLabel == "Other" || model.movements[0].fldSLabel == "other"){
                         scores = scores.reversedArray()
                     }
-                    if(scores[0] > 80){
+                    if(scores[0] > 0.8){
                         motionDetectorListener?.onCorrectMotionRecognized(scores[0], datasList)
                     }
                     motionDetectorListener?.onOutputScores(scores)
                 }else{
+                    Log.d("MMCORE", "Calculando inferencia tipo != 0")
                     var mapOfIndicesToOutputs: Map<Int, Array<FloatArray>> = mapOf(0 to arrayOf(floatArrayOf(0f, 0f, 0f, 0f)))
                     interpreter.runForMultipleInputsOutputs(datasList, mapOfIndicesToOutputs)
                     val scores = FloatArray(4)
@@ -166,7 +172,7 @@ class MotionDetector(private val model: Model, private val tipo: Int) {
 
         //resultAUX = result
 
-        coroutineScope.launch {
+        currentJob = coroutineScope.launch {
             processData()
         }
 
@@ -209,7 +215,7 @@ class MotionDetector(private val model: Model, private val tipo: Int) {
             }
         }
 
-        coroutineScope.launch(Dispatchers.Main) {
+        currentJob = coroutineScope.launch(Dispatchers.Main) {
             if (scores.isNotEmpty()) {
                 motionDetectorListener?.onOutputScores(scores)
             }

@@ -127,7 +127,7 @@ fun GreetingPreview() {
                         val tipo = mmCore.getSensorType(it.first)
                         Log.d("TipoSensor", tipo.name)
                         mmCore.enableAllCache(true)
-                        //mmCore.startMotionDetectorIndex(listOf(0))
+                        mmCore.startMotionDetectorIndex(listOf(0))
                     }
 
                     ConnectionState.DISCONNECTING -> status = 1

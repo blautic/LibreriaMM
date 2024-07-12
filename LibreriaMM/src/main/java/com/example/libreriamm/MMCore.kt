@@ -24,6 +24,7 @@ import com.example.libreriamm.sensor.TypeData
 import com.example.libreriamm.sensor.TypeSensor
 import com.google.firebase.FirebaseApp
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -68,6 +69,7 @@ class MMCore(val context: Context, val coroutineContext: CoroutineContext) {
     private val _sensorFlow: MutableList<MutableStateFlow<Pair<Int, Float>?>> = mutableListOf()
     private val sensorFlow get() = _sensorFlow
     private val scope = CoroutineScope(coroutineContext)
+    private var currentJob: Job? = null
     private var started = false
     private var series: MutableList<MutableList<Array<Array<Array<Array<FloatArray>>>>>> = mutableListOf()
 
@@ -358,7 +360,7 @@ class MMCore(val context: Context, val coroutineContext: CoroutineContext) {
                     contadorF[posicion] += 1
                 }
                 if(inferir) {
-                    Log.d("MMCORE", "Inferir modelo ${datasList}")
+                    Log.d("MMCORE", "Inferir modelo ${datasList.size}")
                     motionDetectors[index].first.inference(datasList)
                 }else{
                     Log.d("MMCORE", "Abortando inferencia por falta de datos")
@@ -633,12 +635,14 @@ class MMCore(val context: Context, val coroutineContext: CoroutineContext) {
                     }
                     //Timber.d("Estado Inferencia: $outputScore - $estadoInferencia - $maxOutput")
                     if(salida.isNotEmpty()){
-                        _dataInferedFlow.value = series[index][series[index].size/2]
-                        _motionDetectorFlow.value = Pair(index, salida)
-                        if(salida[0] < 0.5){
-                            if(series[index].isNotEmpty()){
-                                motionDetector.second.inference(series[index][series[index].size/2])
-                                series[index].clear()
+                        if(series[index].size >= 1) {
+                            _dataInferedFlow.value = series[index][series[index].size / 2]
+                            _motionDetectorFlow.value = Pair(index, salida)
+                            if (salida[0] < 0.5) {
+                                if (series[index].isNotEmpty()) {
+                                    motionDetector.second.inference(series[index][series[index].size / 2])
+                                    series[index].clear()
+                                }
                             }
                         }
                     }
@@ -662,8 +666,9 @@ class MMCore(val context: Context, val coroutineContext: CoroutineContext) {
                     }
                 })
         }
-        scope.launch {
+        currentJob = scope.launch {
             Log.d("MMCORE", "SCOPE LAUNCHED")
+            enableAllCache(true)
             motionDetectors[index].let { motionDetector ->
                 Log.d("MMCORE", "Iniciando md")
                 motionDetector.first.start()
@@ -684,8 +689,8 @@ class MMCore(val context: Context, val coroutineContext: CoroutineContext) {
         enableAllCache(false)
         clearMoveNetcache()
         clearAllCache()
-        if (scope.isActive) {
-            scope.cancel()
+        if (currentJob != null) {
+            currentJob!!.cancel()
         }
     }
     fun getTipoSensores() = sensoresPosicion
