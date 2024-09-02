@@ -67,6 +67,8 @@ class MMCore(val context: Context, val coroutineContext: CoroutineContext) {
     private val _dataInferedFlow = MutableStateFlow<Array<Array<Array<Array<FloatArray>>>>?>(null)
     private val motionDetectorFlow get() = _motionDetectorFlow.asStateFlow()
     private val _sensorFlow: MutableList<MutableStateFlow<Pair<Int, Float>?>> = mutableListOf()
+    private val personRawFlow get() = _personRawFlow.asStateFlow()
+    private val _personRawFlow = MutableStateFlow<Person?>(null)
     private val sensorFlow get() = _sensorFlow
     private val scope = CoroutineScope(coroutineContext)
     private var currentJob: Job? = null
@@ -373,10 +375,14 @@ class MMCore(val context: Context, val coroutineContext: CoroutineContext) {
     }
 
     fun setmodels(models: List<Model>): Boolean{
+        if(started){
+            return false
+        }
         motionDetectors.forEach{
             it.first.stop()
             it.second.stop()
         }
+        disconnectAll()
         motionDetectors.clear()
         series.clear()
         clearAllCache()
@@ -432,6 +438,7 @@ class MMCore(val context: Context, val coroutineContext: CoroutineContext) {
             models.forEachIndexed { indexM, model ->
                 series.add(mutableListOf())
                 motionDetectors.add(Pair(MotionDetector(model, 0), MotionDetector(model, 1)))
+                Log.d("MMCORE", "Par detector creado")
                 setDuration(model.fldNDuration)
                 model.dispositivos.forEachIndexed{ index, dispositivo ->
                     for(tipoDato in TypeData.entries){
@@ -635,10 +642,10 @@ class MMCore(val context: Context, val coroutineContext: CoroutineContext) {
                     }
                     //Timber.d("Estado Inferencia: $outputScore - $estadoInferencia - $maxOutput")
                     if(salida.isNotEmpty()){
+                        _motionDetectorFlow.value = Pair(index, salida)
                         if(series[index].size >= 1) {
                             _dataInferedFlow.value = series[index][series[index].size / 2]
-                            _motionDetectorFlow.value = Pair(index, salida)
-                            if (salida[0] < 0.5) {
+                            if (salida[0] < 0.5 && modelos[index].fldBRegresivo == 1) {
                                 if (series[index].isNotEmpty()) {
                                     motionDetector.second.inference(series[index][series[index].size / 2])
                                     series[index].clear()
@@ -720,6 +727,7 @@ class MMCore(val context: Context, val coroutineContext: CoroutineContext) {
     fun onScanFailure() = deviceManager.scanFailureFlow
     fun onConnectionChange() = deviceManager.connectionChange
     fun onMotionDetectorChange() = motionDetectorFlow
+    fun onPersonDetected() = personRawFlow
     fun onMotionDetectorCorrectChange() = motionDetectorCorrectFlow
 
     fun onSensorChange(index: Int, typedata: TypeData): StateFlow<Pair<Float, Int>> {
@@ -727,7 +735,7 @@ class MMCore(val context: Context, val coroutineContext: CoroutineContext) {
         deviceManager.devices[id]!!.sensorDatas[deviceManager.devices[id]!!.typeSensor.Sensors.indexOf(
             typedata
         )].enableFlow = true
-        Log.d("LECTURA", "HAbilitada")
+        Log.d("LECTURA", "Habilitada")
         return deviceManager.devices[index]!!.sensorDatas[deviceManager.devices[index]!!.typeSensor.Sensors.indexOf(
             typedata
         )].dataFlow
@@ -743,6 +751,7 @@ class MMCore(val context: Context, val coroutineContext: CoroutineContext) {
             imageProxy.toRotatedBitmap(context, 270f, true)
         }
         val result = moveNet.estimateSinglePose(finalBitmap)
+        _personRawFlow.value = result
         media = 0f
         for(i in 0 until listaMedia.size-1){
             listaMedia[i] = listaMedia[i+1]
@@ -769,9 +778,15 @@ class MMCore(val context: Context, val coroutineContext: CoroutineContext) {
         }
         if(!continuar){
             for(j in 0 until i){
-                tiempos.removeAt(0)
-                moveNetCache.removeAt(0)
-                moveNetCacheRaw.removeAt(0)
+                if(tiempos.size > 1) {
+                    tiempos.removeAt(0)
+                }
+                if(moveNetCache.size > 1) {
+                    moveNetCache.removeAt(0)
+                }
+                if(moveNetCacheRaw.size > 1) {
+                    moveNetCacheRaw.removeAt(0)
+                }
             }
         }
         //imageProxy.close()

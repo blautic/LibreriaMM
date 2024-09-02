@@ -118,7 +118,6 @@ class MotionDetector(private val model: Model, private val tipo: Int) {
             Log.d("MMCORE", "inferencia activa... $isStarted")
             inferenceInterface?.takeIf { isStarted }?.let { interpreter ->
                 if(tipo == 0) {
-
                     Log.d("MMCORE", "Calculando inferencia tipo 1")
                     var mapOfIndicesToOutputs: Map<Int, Array<FloatArray>> =
                         mapOf(0 to arrayOf(floatArrayOf(0f, 0f)))
@@ -131,10 +130,10 @@ class MotionDetector(private val model: Model, private val tipo: Int) {
                         scores[i] =
                             ((mapOfIndicesToOutputs[0]?.get(0)?.get(i) ?: 0f) * 100f) / totalProb
                     }
-                    if(model.movements[0].fldSLabel == "Other" || model.movements[0].fldSLabel == "other"){
+                    if(model.fldSName > "Other"){
                         scores = scores.reversedArray()
                     }
-                    if(scores[0] > 0.8){
+                    if(scores[0] > 80){
                         motionDetectorListener?.onCorrectMotionRecognized(scores[0], datasList)
                     }
                     motionDetectorListener?.onOutputScores(scores)

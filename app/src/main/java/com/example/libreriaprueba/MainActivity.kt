@@ -162,7 +162,7 @@ fun GreetingPreview() {
             verticalArrangement = Arrangement.Bottom
         ) {
             Button(onClick = {
-                             mmCore.getCapture(0)
+                mmCore.stopMotionDetector()
             }, modifier = Modifier.wrapContentHeight()) {
                 Icon(
                     painter = painterResource(id = android.R.drawable.ic_dialog_alert),
