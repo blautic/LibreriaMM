@@ -17,6 +17,7 @@ import com.example.libreriamm.camara.Person
 import com.example.libreriamm.camara.PointF
 import com.example.libreriamm.camara.YuvToRgbConverter
 import com.example.libreriamm.entity.Model
+import com.example.libreriamm.entity.ObjetoEstadistica
 import com.example.libreriamm.entity.Position
 import com.example.libreriamm.motiondetector.MotionDetector
 import com.example.libreriamm.sensor.SensorsManager
@@ -35,6 +36,7 @@ import kotlinx.coroutines.launch
 import java.time.LocalDateTime
 import kotlin.coroutines.CoroutineContext
 import kotlin.math.abs
+import kotlin.math.ceil
 import kotlin.math.max
 import kotlin.math.min
 import kotlin.math.pow
@@ -51,7 +53,7 @@ class MMCore(val context: Context, val coroutineContext: CoroutineContext) {
     private val deviceManager = SensorsManager(context = context)
     private var moveNetCache = mutableListOf<Person>()
     private var moveNetCacheRaw = mutableListOf<Person>()
-    private var frontCamera = false
+    private var frontCamera = true
     private var media = 0f
     private var listaMedia = MutableList(5){0f}
     private var tiempos: MutableList<LocalDateTime> = mutableListOf()
@@ -74,6 +76,7 @@ class MMCore(val context: Context, val coroutineContext: CoroutineContext) {
     private var currentJob: Job? = null
     private var started = false
     private var series: MutableList<MutableList<Array<Array<Array<Array<FloatArray>>>>>> = mutableListOf()
+    private var estadisticas: MutableList<List<ObjetoEstadistica>> = mutableListOf()
 
 
 
@@ -160,6 +163,90 @@ class MMCore(val context: Context, val coroutineContext: CoroutineContext) {
         }
         return normalizedLandmarks
     }
+    fun getExplicabilidad(index: Int): String{
+        if(index >= estadisticas.size){
+            return ""
+        }
+        val datos = getShai(index)
+        Log.d("MMCORE", "Resultados: ${estadisticas[index].map { r -> r.id}} Datos:  ${datos.map { r -> r.first}}")
+        val resultados: MutableList<Pair<Int, MutableList<Float>>> = datos.map { d -> Pair(d.first, MutableList(4){0f}) }.toMutableList()
+        resultados.forEach { res ->
+            val dato = datos.firstOrNull { d -> d.first == res.first }
+            if(dato != null) {
+                val est = estadisticas[index].first { e -> e.id == res.first }
+                val cant = ceil(dato.second.size / 3f).toInt()
+                dato.second.forEachIndexed { index, d ->
+                    val e = est.datos[index]
+                    var a = e.media - d.second
+                    var mayor = false
+                    if (a < 0) {
+                        mayor = true
+                        a *= -1f
+                    }
+                    if (a > 0) {
+                        val b = (a / e.std) * (if (!mayor) -1 else 1)
+                        //res.second[0] += b
+                        res.second[(index / cant) + 1] += b
+                    }
+                }
+            }else{
+                Log.e("MMCORE", "No match resultados y datos: resultados: ${estadisticas[index].map { r -> r.id}} Datos:  ${datos.map { r -> r.first}}")
+            }
+        }
+        var sensor = 0
+        var instante = 0
+        var maximo = 0f
+        resultados.forEachIndexed{index, res ->
+            res.second.forEachIndexed{index1, dat ->
+                Log.e("MMCORE", "($sensor, $instante) dat: $dat maximo:$maximo")
+                if(abs(dat) > abs(maximo)){
+                    sensor = index
+                    instante = index1
+                    maximo = dat
+                }
+            }
+        }
+        var res = "Mueve mas "
+        res = res + when {
+            sensor in 0..16 -> if(maximo > 0f) "a la izquierda " else "a la derecha "
+            sensor in 17..33 -> if(maximo > 0f) "arriba " else "abajo "
+            sensor == 34 -> if(maximo > 0f) "a la izquierda " else "a la derecha "
+            sensor == 35 -> if(maximo > 0f) "arriba " else "abajo "
+            else -> ""
+        }
+        res = res + when(sensor){
+            0,1,2,3,4,17,18,19,20,21 -> "la cabeza "
+            5,22 -> "el hombro izquierdo "
+            6,23 -> "el hombro derecho "
+            7,24 -> "el codo izquierdo "
+            8,25 -> "el codo derecho "
+            9,26 -> "la mano izquierda "
+            10,27 -> "la mano derecha "
+            11,28 -> "la cadera izquierda "
+            12,29 -> "la cadera dereecha "
+            13,30 -> "la rodilla izquierda "
+            14,31 -> "la rodilla derecha "
+            15,32 -> "el pie izquierdo "
+            16,33 -> "el pie derecho "
+            34,35 -> "el cuerpo "
+            else -> ""
+        }
+        res = res + when(instante){
+            1 -> "al inicio del movimiento"
+            2 -> "a mitad del movimiento"
+            3 -> "al final del movimiento"
+            else -> ""
+        }
+        return res
+    }
+    fun setExplicabilidad(index: Int, estadistic: List<ObjetoEstadistica>): Boolean{
+        Log.d("MMCORE", "SET STADISTIC: ($index) ${estadistic.map { e -> e.id }}")
+        if(index >= estadisticas.size){
+            return false
+        }
+        estadisticas[index] = estadistic
+        return true
+    }
     private fun getMoveNetCache(duration: Int): MutableList<Person> {
         val size = moveNetCache.size
         val step =
@@ -188,6 +275,27 @@ class MMCore(val context: Context, val coroutineContext: CoroutineContext) {
             result.add(moveNetCache[(size - index) + i])
         }
         return result
+    }
+    private fun ImageProxy.toBitmap(context: Context): Bitmap{
+        val imageWidth = width
+        val imageHeight = height
+        val bitmap = Bitmap.createBitmap(imageWidth, imageHeight, Bitmap.Config.ARGB_8888)
+
+        YuvToRgbConverter(context).yuvToRgb(image!!, bitmap)
+        return bitmap
+    }
+    private fun rotateBitmap(bitmap: Bitmap, degrees: Float, isFrontCamera: Boolean): Bitmap{
+        val rotateMatrix = Matrix().apply {
+            postRotate(degrees)
+            if (isFrontCamera) {
+                // Si es la cámara frontal, aplica una transformación de espejo horizontal.
+                postScale(-1f, 1f, bitmap.width / 2f, bitmap.height / 2f)
+            }
+        }
+
+        val rotatedBitmap = Bitmap.createBitmap(bitmap, 0, 0, bitmap.width, bitmap.height, rotateMatrix, false)
+        bitmap.recycle()
+        return rotatedBitmap
     }
     private fun ImageProxy.toRotatedBitmap(context: Context, degrees: Float, isFrontCamera: Boolean): Bitmap {
         val imageWidth = width
@@ -233,139 +341,147 @@ class MMCore(val context: Context, val coroutineContext: CoroutineContext) {
     private suspend fun read(){
         Log.d("MMCORE", "Preparando inferencia")
         modelos.forEachIndexed { index, model ->
-            if (media >= 0.2f || model.fkTipo != 2) {
-                val contadorF: MutableList<Int> = MutableList(frecuencias[index].size) { 0 }
-                val datasList: Array<Array<Array<Array<FloatArray>>>> =
-                    Array(frecuencias[index].size) { Array(1) { arrayOf() } }
-                for (i in 0 until frecuencias[index].size) {
-                    datasList[i][0] = Array(frecuencias[index][i] * model.fldNDuration) {
-                        Array(cantidades[index][i]) {
-                            floatArrayOf(0f)
+            if(indices.contains(index)) {
+                if (media >= 0.2f || model.fkTipo != 2) {
+                    val contadorF: MutableList<Int> = MutableList(frecuencias[index].size) { 0 }
+                    val datasList: Array<Array<Array<Array<FloatArray>>>> =
+                        Array(frecuencias[index].size) { Array(1) { arrayOf() } }
+                    for (i in 0 until frecuencias[index].size) {
+                        datasList[i][0] = Array(frecuencias[index][i] * model.fldNDuration) {
+                            Array(cantidades[index][i]) {
+                                floatArrayOf(0f)
+                            }
                         }
                     }
-                }
-                var pos = -1
-                var nSensor = -1
-                var inferir = true
-                model.dispositivos.forEachIndexed { _, it ->
-                    var frecuencia = 0
-                    var posicion = 0
-                    var nomSensor = ""
-                    for (tipoDato in TypeData.entries) {
-                        if (tipoDato.id == it.fkSensor) {
-                            frecuencia = tipoDato.fs
-                            nomSensor = tipoDato.name
-                            posicion = frecuencias[index].indexOf(frecuencia)
+                    var pos = -1
+                    var nSensor = -1
+                    var inferir = true
+                    model.dispositivos.forEachIndexed { _, it ->
+                        var frecuencia = 0
+                        var posicion = 0
+                        var nomSensor = ""
+                        for (tipoDato in TypeData.entries) {
+                            if (tipoDato.id == it.fkSensor) {
+                                frecuencia = tipoDato.fs
+                                nomSensor = tipoDato.name
+                                posicion = frecuencias[index].indexOf(frecuencia)
+                            }
                         }
-                    }
-                    if (pos != it.fkPosicion) {
-                        pos = it.fkPosicion
+                        if (pos != it.fkPosicion) {
+                            pos = it.fkPosicion
+                            if (pos != 0) {
+                                nSensor += 1
+                            }
+                        }
                         if (pos != 0) {
-                            nSensor += 1
-                        }
-                    }
-                    if (pos != 0) {
-                        if (nSensor < 0) {
-                            return
-                        }
-                        val datos = getDataCache(nSensor, nomSensor, model.fldNDuration)
-                        if(datos == null){
-                            inferir = false
-                        }else{
-                            if(datos.size < (frecuencia * model.fldNDuration)){
+                            if (nSensor < 0) {
+                                return
+                            }
+                            val datos = getDataCache(nSensor, nomSensor, model.fldNDuration)
+                            if (datos == null) {
+                                inferir = false
+                            } else {
+                                if (datos.size < (frecuencia * model.fldNDuration)) {
+                                    inferir = false
+                                }
+                            }
+                            datos?.forEachIndexed { indexD, itD ->
+                                datasList[posicion][0][indexD][contadorF[posicion]][0] = itD.first
+                            }
+                        } else {
+                            val resultsRawNorma: MutableList<Person> =
+                                extractUniformElements(moveNetCache, model)
+                            val resultsRaw: MutableList<Person> =
+                                extractUniformElements(moveNetCacheRaw, model)
+                            if (resultsRaw.size < 10 * model.fldNDuration || resultsRawNorma.size < 10 * model.fldNDuration) {
                                 inferir = false
                             }
-                        }
-                        datos?.forEachIndexed { indexD, itD ->
-                            datasList[posicion][0][indexD][contadorF[posicion]][0] = itD.first
-                        }
-                    } else {
-                        val resultsRawNorma: MutableList<Person> =
-                            extractUniformElements(moveNetCache, model)
-                        val resultsRaw: MutableList<Person> =
-                            extractUniformElements(moveNetCacheRaw, model)
-                        if(resultsRaw.size < 10*model.fldNDuration || resultsRawNorma.size < 10*model.fldNDuration){
-                            inferir = false
-                        }
-                        var acumuladoX = 0f
-                        var acumuladoY = 0f
-                        resultsRawNorma.forEachIndexed { indexD, person ->
-                            //val valores = person.copy(keyPoints = normalizePoseKeypoint(person.keyPoints))
-                            var sDato = 0f
-                            when (it.fkSensor) {
-                                in 29..45 -> {
-                                    sDato = person.keyPoints[it.fkSensor - 29].coordinate.y
-                                }
-                                in 7..23 -> {
-                                    sDato = person.keyPoints[it.fkSensor - 7].coordinate.x
-                                }
-                                84 -> {
-                                    sDato = if (indexD == 0) {
-                                        0f
-                                    } else {
-                                        val x10 =
-                                            resultsRaw[indexD - 1].keyPoints.find { puntos -> puntos.bodyPart == BodyPart.RIGHT_HIP }!!.coordinate.x
-                                        val x20 =
-                                            resultsRaw[indexD - 1].keyPoints.find { puntos -> puntos.bodyPart == BodyPart.LEFT_HIP }!!.coordinate.x
-                                        val x1f =
-                                            resultsRaw[indexD].keyPoints.find { puntos -> puntos.bodyPart == BodyPart.RIGHT_HIP }!!.coordinate.x
-                                        val x2f =
-                                            resultsRaw[indexD].keyPoints.find { puntos -> puntos.bodyPart == BodyPart.LEFT_HIP }!!.coordinate.x
-                                        val x0 = (x20 + x10) / 2f
-                                        val xf = (x2f + x1f) / 2f
-                                        val alt0 =
-                                            resultsRaw[indexD].keyPoints.minBy { puntos -> puntos.coordinate.y }.coordinate.y
-                                        val altf =
-                                            resultsRaw[indexD].keyPoints.maxBy { puntos -> puntos.coordinate.y }.coordinate.y
-                                        val alt = abs(altf - alt0)
-                                        if (alt < 1f) {
+                            var acumuladoX = 0f
+                            var acumuladoY = 0f
+                            resultsRawNorma.forEachIndexed { indexD, person ->
+                                //val valores = person.copy(keyPoints = normalizePoseKeypoint(person.keyPoints))
+                                var sDato = 0f
+                                when (it.fkSensor) {
+                                    in 29..45 -> {
+                                        sDato = person.keyPoints[it.fkSensor - 29].coordinate.y
+                                    }
+
+                                    in 7..23 -> {
+                                        sDato = person.keyPoints[it.fkSensor - 7].coordinate.x
+                                    }
+
+                                    84 -> {
+                                        sDato = if (indexD == 0) {
                                             0f
                                         } else {
-                                            acumuladoX += ((xf - x0) / alt)
-                                            min(1f, java.lang.Float.max(-1f, acumuladoX))
+                                            val x10 =
+                                                resultsRaw[indexD - 1].keyPoints.find { puntos -> puntos.bodyPart == BodyPart.RIGHT_HIP }!!.coordinate.x
+                                            val x20 =
+                                                resultsRaw[indexD - 1].keyPoints.find { puntos -> puntos.bodyPart == BodyPart.LEFT_HIP }!!.coordinate.x
+                                            val x1f =
+                                                resultsRaw[indexD].keyPoints.find { puntos -> puntos.bodyPart == BodyPart.RIGHT_HIP }!!.coordinate.x
+                                            val x2f =
+                                                resultsRaw[indexD].keyPoints.find { puntos -> puntos.bodyPart == BodyPart.LEFT_HIP }!!.coordinate.x
+                                            val x0 = (x20 + x10) / 2f
+                                            val xf = (x2f + x1f) / 2f
+                                            val alt0 =
+                                                resultsRaw[indexD].keyPoints.minBy { puntos -> puntos.coordinate.y }.coordinate.y
+                                            val altf =
+                                                resultsRaw[indexD].keyPoints.maxBy { puntos -> puntos.coordinate.y }.coordinate.y
+                                            val alt = abs(altf - alt0)
+                                            if (alt < 1f) {
+                                                0f
+                                            } else {
+                                                acumuladoX += ((xf - x0) / alt)
+                                                min(1f, java.lang.Float.max(-1f, acumuladoX))
+                                            }
+                                            //(person.keyPoints[it.fkSensor - 50].coordinate.x - resultsRaw[index - 1].keyPoints[it.fkSensor - 50].coordinate.x) / abs(person.keyPoints.find {puntos ->  puntos.bodyPart == BodyPart.RIGHT_HIP }!!.coordinate.x - person.keyPoints.find { puntos ->  puntos.bodyPart == BodyPart.LEFT_HIP }!!.coordinate.x) / 420f
                                         }
-                                        //(person.keyPoints[it.fkSensor - 50].coordinate.x - resultsRaw[index - 1].keyPoints[it.fkSensor - 50].coordinate.x) / abs(person.keyPoints.find {puntos ->  puntos.bodyPart == BodyPart.RIGHT_HIP }!!.coordinate.x - person.keyPoints.find { puntos ->  puntos.bodyPart == BodyPart.LEFT_HIP }!!.coordinate.x) / 420f
                                     }
-                                }
-                                85 -> {
-                                    sDato = if (indexD == 0) {
-                                        0f
-                                    } else {
-                                        val y10 =
-                                            resultsRaw[indexD - 1].keyPoints.find { puntos -> puntos.bodyPart == BodyPart.RIGHT_HIP }!!.coordinate.y
-                                        val y20 =
-                                            resultsRaw[indexD - 1].keyPoints.find { puntos -> puntos.bodyPart == BodyPart.LEFT_HIP }!!.coordinate.y
-                                        val y1f =
-                                            resultsRaw[indexD].keyPoints.find { puntos -> puntos.bodyPart == BodyPart.RIGHT_HIP }!!.coordinate.y
-                                        val y2f =
-                                            resultsRaw[indexD].keyPoints.find { puntos -> puntos.bodyPart == BodyPart.LEFT_HIP }!!.coordinate.y
-                                        val y0 = (y20 + y10) / 2f
-                                        val yf = (y2f + y1f) / 2f
-                                        val alt0 =
-                                            resultsRaw[indexD].keyPoints.minBy { puntos -> puntos.coordinate.y }.coordinate.y
-                                        val altf =
-                                            resultsRaw[indexD].keyPoints.maxBy { puntos -> puntos.coordinate.y }.coordinate.y
-                                        val alt = abs(altf - alt0)
-                                        if (alt < 1f) {
+
+                                    85 -> {
+                                        sDato = if (indexD == 0) {
                                             0f
                                         } else {
-                                            acumuladoY += ((yf - y0) / alt)
-                                            min(1f, java.lang.Float.max(-1f, acumuladoY))
+                                            val y10 =
+                                                resultsRaw[indexD - 1].keyPoints.find { puntos -> puntos.bodyPart == BodyPart.RIGHT_HIP }!!.coordinate.y
+                                            val y20 =
+                                                resultsRaw[indexD - 1].keyPoints.find { puntos -> puntos.bodyPart == BodyPart.LEFT_HIP }!!.coordinate.y
+                                            val y1f =
+                                                resultsRaw[indexD].keyPoints.find { puntos -> puntos.bodyPart == BodyPart.RIGHT_HIP }!!.coordinate.y
+                                            val y2f =
+                                                resultsRaw[indexD].keyPoints.find { puntos -> puntos.bodyPart == BodyPart.LEFT_HIP }!!.coordinate.y
+                                            val y0 = (y20 + y10) / 2f
+                                            val yf = (y2f + y1f) / 2f
+                                            val alt0 =
+                                                resultsRaw[indexD].keyPoints.minBy { puntos -> puntos.coordinate.y }.coordinate.y
+                                            val altf =
+                                                resultsRaw[indexD].keyPoints.maxBy { puntos -> puntos.coordinate.y }.coordinate.y
+                                            val alt = abs(altf - alt0)
+                                            if (alt < 1f) {
+                                                0f
+                                            } else {
+                                                acumuladoY += ((yf - y0) / alt)
+                                                min(1f, java.lang.Float.max(-1f, acumuladoY))
+                                            }
+                                            //(person.keyPoints[it.fkSensor - 50].coordinate.x - resultsRaw[index - 1].keyPoints[it.fkSensor - 50].coordinate.x) / abs(person.keyPoints.find {puntos ->  puntos.bodyPart == BodyPart.RIGHT_HIP }!!.coordinate.x - person.keyPoints.find { puntos ->  puntos.bodyPart == BodyPart.LEFT_HIP }!!.coordinate.x) / 420f
                                         }
-                                        //(person.keyPoints[it.fkSensor - 50].coordinate.x - resultsRaw[index - 1].keyPoints[it.fkSensor - 50].coordinate.x) / abs(person.keyPoints.find {puntos ->  puntos.bodyPart == BodyPart.RIGHT_HIP }!!.coordinate.x - person.keyPoints.find { puntos ->  puntos.bodyPart == BodyPart.LEFT_HIP }!!.coordinate.x) / 420f
                                     }
                                 }
+                                datasList[posicion][0][indexD][contadorF[posicion]][0] = sDato
                             }
-                            datasList[posicion][0][indexD][contadorF[posicion]][0] = sDato
                         }
+                        contadorF[posicion] += 1
                     }
-                    contadorF[posicion] += 1
-                }
-                if(inferir) {
-                    Log.d("MMCORE", "Inferir modelo ${datasList.size}")
-                    motionDetectors[index].first.inference(datasList)
-                }else{
-                    Log.d("MMCORE", "Abortando inferencia por falta de datos")
+                    if (inferir) {
+                        Log.d(
+                            "MMCORE",
+                            "Inferir modelo ($index) ${datasList.map { it1 -> it1.map { it2 -> it2.map { it3 -> it3.size } } }}"
+                        )
+                        motionDetectors[index].first.inference(datasList)
+                    } else {
+                        Log.d("MMCORE", "Abortando inferencia por falta de datos")
+                    }
                 }
             }
         }
@@ -382,9 +498,12 @@ class MMCore(val context: Context, val coroutineContext: CoroutineContext) {
             it.first.stop()
             it.second.stop()
         }
+        while(estadisticas.size < models.size){
+            estadisticas.add(listOf())
+        }
         disconnectAll()
-        motionDetectors.clear()
-        series.clear()
+        motionDetectors = mutableListOf()
+        series = mutableListOf()
         clearAllCache()
         clearMoveNetcache()
         sensoresPosicion = mutableListOf()
@@ -421,6 +540,9 @@ class MMCore(val context: Context, val coroutineContext: CoroutineContext) {
                 val lista = mutableListOf<TypeSensor>()
                 if (mpu && !ecg && !emg) {
                     lista.add(TypeSensor.PIKKU)
+                }
+                if (mpu && !ecg && !emg) {
+                    lista.add(TypeSensor.CROLL)
                 }
                 if (mpu || ecg || emg) {
                     lista.add(TypeSensor.BIO2)
@@ -598,6 +720,106 @@ class MMCore(val context: Context, val coroutineContext: CoroutineContext) {
         }
         return datas
     }
+    private fun getShai(index: Int): List<Pair<Int, List<Pair<Int, Float>>>>{
+        var datas: MutableList<Pair<Int, List<Pair<Int, Float>>>> = mutableListOf()
+        var data: List<Pair<Int, Float>> = emptyList()
+        val elemento = enumValues<TypeData>().toList()
+        var nSensor = -1
+        var posicion = -1
+        modelos[index].let{ model ->
+            model.dispositivos.filter { it.fkPosicion == 0}.forEachIndexed { index, it ->
+                var sample = 0
+                Log.d("MMCORE-LOG", "MovenetCache Size: ${moveNetCacheRaw.size}")
+                if (moveNetCacheRaw.size * 2 < 10 * model.fldNDuration) {
+                    return listOf()
+                }
+                if (moveNetCacheRaw.size < 10 * model.fldNDuration) {
+                    val nuevaMoveNetCache = mutableListOf<Person>()
+                    for(i in 0 until moveNetCacheRaw.size - 1){
+                        val p1 = moveNetCacheRaw[i]
+                        val p2 = moveNetCacheRaw[i+1]
+                        nuevaMoveNetCache.add(p1)
+                        nuevaMoveNetCache.add(interpolarPersona(p1, p2))
+                    }
+                    nuevaMoveNetCache.add(moveNetCacheRaw.last())
+                    moveNetCacheRaw = nuevaMoveNetCache
+                }
+                val resultsRaw: MutableList<Person> =
+                    extractUniformElements(moveNetCacheRaw, model)
+                var acumuladoX = 0f
+                var acumuladoY = 0f
+                resultsRaw.forEachIndexed { index, person ->
+                    val valores =
+                        person.copy(keyPoints = normalizePoseKeypoint(person.keyPoints))
+                    var sDato = 0f
+                    if (it.fkSensor in 29..45) {
+                        sDato = valores.keyPoints[it.fkSensor - 29].coordinate.y
+                    } else if (it.fkSensor in 7..23) {
+                        sDato = valores.keyPoints[it.fkSensor - 7].coordinate.x
+                    } else if (it.fkSensor == 84) {
+                        sDato = if (index == 0) {
+                            0f
+                        } else {
+                            val x10 =
+                                resultsRaw[index - 1].keyPoints.find { puntos -> puntos.bodyPart == BodyPart.RIGHT_HIP }!!.coordinate.x
+                            val x20 =
+                                resultsRaw[index - 1].keyPoints.find { puntos -> puntos.bodyPart == BodyPart.LEFT_HIP }!!.coordinate.x
+                            val x1f =
+                                resultsRaw[index].keyPoints.find { puntos -> puntos.bodyPart == BodyPart.RIGHT_HIP }!!.coordinate.x
+                            val x2f =
+                                resultsRaw[index].keyPoints.find { puntos -> puntos.bodyPart == BodyPart.LEFT_HIP }!!.coordinate.x
+                            val x0 = (x20 + x10) / 2f
+                            val xf = (x2f + x1f) / 2f
+                            val alt0 =
+                                resultsRaw[index].keyPoints.minBy { puntos -> puntos.coordinate.y }.coordinate.y
+                            val altf =
+                                resultsRaw[index].keyPoints.maxBy { puntos -> puntos.coordinate.y }.coordinate.y
+                            val alt = abs(altf - alt0)
+                            if (alt < 1f) {
+                                0f
+                            } else {
+                                acumuladoX = acumuladoX + ((xf - x0) / alt)
+                                min(1f, max(-1f, acumuladoX))
+                            }
+                            //(person.keyPoints[it.fkSensor - 50].coordinate.x - resultsRaw[index - 1].keyPoints[it.fkSensor - 50].coordinate.x) / abs(person.keyPoints.find {puntos ->  puntos.bodyPart == BodyPart.RIGHT_HIP }!!.coordinate.x - person.keyPoints.find { puntos ->  puntos.bodyPart == BodyPart.LEFT_HIP }!!.coordinate.x) / 420f
+                        }
+                    } else if (it.fkSensor == 85) {
+                        sDato = if (index == 0) {
+                            0f
+                        } else {
+                            val y10 =
+                                resultsRaw[index - 1].keyPoints.find { puntos -> puntos.bodyPart == BodyPart.RIGHT_HIP }!!.coordinate.y
+                            val y20 =
+                                resultsRaw[index - 1].keyPoints.find { puntos -> puntos.bodyPart == BodyPart.LEFT_HIP }!!.coordinate.y
+                            val y1f =
+                                resultsRaw[index].keyPoints.find { puntos -> puntos.bodyPart == BodyPart.RIGHT_HIP }!!.coordinate.y
+                            val y2f =
+                                resultsRaw[index].keyPoints.find { puntos -> puntos.bodyPart == BodyPart.LEFT_HIP }!!.coordinate.y
+                            val y0 = (y20 + y10) / 2f
+                            val yf = (y2f + y1f) / 2f
+                            val alt0 =
+                                resultsRaw[index].keyPoints.minBy { puntos -> puntos.coordinate.y }.coordinate.y
+                            val altf =
+                                resultsRaw[index].keyPoints.maxBy { puntos -> puntos.coordinate.y }.coordinate.y
+                            val alt = abs(altf - alt0)
+                            if (abs(alt) < 1f) {
+                                0f
+                            } else {
+                                acumuladoY = acumuladoY + ((yf - y0) / alt)
+                                min(1f, max(-1f, acumuladoY))
+                            }
+                            //(person.keyPoints[it.fkSensor - 50].coordinate.x - resultsRaw[index - 1].keyPoints[it.fkSensor - 50].coordinate.x) / abs(person.keyPoints.find {puntos ->  puntos.bodyPart == BodyPart.RIGHT_HIP }!!.coordinate.x - person.keyPoints.find { puntos ->  puntos.bodyPart == BodyPart.LEFT_HIP }!!.coordinate.x) / 420f
+                        }
+                    }
+                    data = data + Pair(sample, sDato)
+                    sample += 1
+                }
+                datas.add(Pair(it.id, data))
+                data = emptyList()
+            }
+        }
+        return datas
+    }
     fun getLabels(index: Int): List<String>{
         val res: MutableList<String> = mutableListOf()
         if(index < modelos.size){
@@ -607,14 +829,18 @@ class MMCore(val context: Context, val coroutineContext: CoroutineContext) {
         }
         return res
     }
+    private var indices: List<Int> = listOf()
     fun startMotionDetector(){
+        indices = (0..modelos.size).toList()
         stopMotionDetector()
         for(i in 0..motionDetectors.size){
             startMotionDetectorIndexPrivate(i)
         }
     }
     fun startMotionDetectorIndex(indexs: List<Int>){
+        indices = indexs
         stopMotionDetector()
+        Log.d("MMCORE", "Creando listeners for ($indexs)")
         indexs.forEach{
             startMotionDetectorIndexPrivate(it)
         }
@@ -626,7 +852,7 @@ class MMCore(val context: Context, val coroutineContext: CoroutineContext) {
         started = true
         enableAllCache(true)
         motionDetectors[index].let { motionDetector ->
-            Log.d("MOTIONDETECTOR", "Creando listener")
+            Log.d("MOTIONDETECTOR", "Creando listener for ($index)")
             motionDetector.first.setMotionDetectorListener(object :
                 MotionDetector.MotionDetectorListener {
 
@@ -678,8 +904,8 @@ class MMCore(val context: Context, val coroutineContext: CoroutineContext) {
             enableAllCache(true)
             motionDetectors[index].let { motionDetector ->
                 Log.d("MMCORE", "Iniciando md")
-                motionDetector.first.start()
                 motionDetector.second.start()
+                motionDetector.first.start()
                 Log.d("MMCORE", "Md iniciado")
             }
             Log.d("MMCORE", "Espera md")
@@ -745,10 +971,14 @@ class MMCore(val context: Context, val coroutineContext: CoroutineContext) {
         frontCamera = front
     }
     fun updateImage(imageProxy: ImageProxy){
+        finalBitmap = imageProxy.toBitmap(context)
+        addImage(finalBitmap)
+    }
+    fun addImage(bitmap: Bitmap){
         finalBitmap = if (!frontCamera) {
-            imageProxy.toRotatedBitmap(context, 90f, true)
+            rotateBitmap(bitmap, 90f, true)
         } else {
-            imageProxy.toRotatedBitmap(context, 270f, true)
+            rotateBitmap(bitmap, 270f, true)
         }
         val result = moveNet.estimateSinglePose(finalBitmap)
         _personRawFlow.value = result

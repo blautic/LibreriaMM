@@ -99,5 +99,29 @@ enum class TypeSensor(
             TypeData.GyrY,
             TypeData.GyrZ
         ),
+    ),
+    CROLL(
+        50,
+        0,
+        0,
+        6,
+        "0000ff04-0000-1000-8000-00805f9b34fb",
+        "0000ff38-0000-1000-8000-00805f9b34fb",
+        "",
+        "",
+        "0000ff03-0000-1000-8000-00805f9b34fb",
+        "0000ff02-0000-1000-8000-00805f9b34fb",
+        "0000ff09-0000-1000-8000-00805f9b34fb",
+        "0000ff00-0000-1000-8000-00805f9b34fb",
+        "0000ff09-0000-1000-8000-00805f9b34fb",
+        "EE:EE:EE:EE:EE:EE",
+        arrayOf(
+            TypeData.AccX,
+            TypeData.AccY,
+            TypeData.AccZ,
+            TypeData.GyrX,
+            TypeData.GyrY,
+            TypeData.GyrZ
+        ),
     )
 }

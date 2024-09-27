@@ -1,9 +1,10 @@
 package com.example.libreriamm.entity
 
 import kotlinx.serialization.SerialName
+import kotlinx.serialization.Serializable
 
 @KMMParcelize
-@kotlinx.serialization.Serializable
+@Serializable
 data class Model(
     @SerialName("devices")
     val devices: List<Device>,

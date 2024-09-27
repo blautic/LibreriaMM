@@ -54,10 +54,9 @@ class MotionDetector(private val model: Model, private val tipo: Int) {
     private var inferenceInterface: Interpreter? = null
     private var options: Interpreter.Options? = null
 
-    var isStarted = false
-        private set
+    private var isStarted = false
 
-    var selectMovIndex = 0
+    private var selectMovIndex = 0
 
     fun setMotionDetectorListener(motionDetectorListener: MotionDetectorListener?) {
         this.motionDetectorListener = motionDetectorListener
@@ -93,11 +92,15 @@ class MotionDetector(private val model: Model, private val tipo: Int) {
 
                             inferenceInterface = Interpreter(file, options)
                             isStarted = true
-                            Log.d("MMCORE", "Started resolve: ${isStarted}")
+                            //Log.d("MMCORE", "Started resolve: ${isStarted}")
+                            Log.d("MMCORE", "Activada inferencia: ${isStarted}")
                         }
                     }
                 }
-            }.addOnFailureListener { t: Exception? -> Timber.e(t) }
+            }.addOnFailureListener { t: Exception? ->
+                Log.d("MMCORE ERROR", "MODEL DOWNLOAD: ${t}")
+                Timber.e(t)
+            }
     }
 
     fun stop() {
@@ -106,6 +109,7 @@ class MotionDetector(private val model: Model, private val tipo: Int) {
         }
         synchronized(lock) {
             isStarted = false
+            Log.d("MMCORE", "Desactivada inferencia: $isStarted")
         }
         inferenceInterface?.let {
             it.close()

@@ -2,6 +2,7 @@ package com.example.libreriamm.sensor
 
 
 import android.content.Context
+import android.util.Log
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.first
@@ -140,6 +141,7 @@ class SensorsManager(val context: Context) : BluetoothManagerCallback {
 
     override fun onDiscoveredPeripheral(peripheral: String, scanResult: ScanResult) {
         if(buscando){
+            Log.d("MMCORE", "Scan result: ${scanResult.name}-${scanResult.address} (${scanResult.button})")
             if(scanResult.button){
                 val sens = isConnected(scanResult.address)
                 if(sens != null){

@@ -1,6 +1,8 @@
 package com.example.libreriamm.sensor
 
 
+import android.util.Log
+import com.example.libreriamm.sensor.BleBytesParser.Companion.FORMAT_UINT8
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import org.koin.core.component.KoinComponent
@@ -104,6 +106,8 @@ class GenericDevice(
         characteristic: String,
     ) {
         val parse = BleBytesParser(value)
+
+        Log.d("MMCORE", "Characteristic Type: ${typeSensor.name}")
         //Napier.d("Leido UUID: (${typeSensor.name}) - $characteristic")
         when (typeSensor) {
             TypeSensor.BIO1 -> {
@@ -133,6 +137,20 @@ class GenericDevice(
                     }
 
                     characteristic.equals(BluetoothUUIDs.UUID_TAG_OPER, ignoreCase = true) -> {
+                        deviceStatus.setData(parse)
+                        _deviceStatusFlow.value = deviceStatus.copy()
+                    }
+                }
+            }
+            TypeSensor.CROLL -> {
+                Log.d("MMCORE", "Characteristic: ${characteristic}")
+                when {
+                    characteristic.equals(TypeSensor.CROLL.UUID_MPU_CHARACTERISTIC, ignoreCase = true) -> {
+                        val id = parse.getIntValue(FORMAT_UINT8) // El primer byte es un id de acelerómetro que no sirve en esta app pero ha de hacerse el parse para avanzarlo dentro del byte array.
+                        parseMPU(parse)
+                    }
+
+                    characteristic.equals(TypeSensor.CROLL.UUID_STATUS_CHARACTERISTIC, ignoreCase = true) -> {
                         deviceStatus.setData(parse)
                         _deviceStatusFlow.value = deviceStatus.copy()
                     }

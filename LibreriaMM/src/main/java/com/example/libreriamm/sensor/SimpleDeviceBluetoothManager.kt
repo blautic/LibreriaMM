@@ -2,6 +2,7 @@ package com.example.libreriamm.sensor
 
 import BleUUID
 import android.bluetooth.BluetoothGattCharacteristic
+import android.util.Log
 import com.diegulog.ble.gatt.BlePeripheral
 import com.diegulog.ble.gatt.BlePeripheralCallback
 import com.diegulog.ble.gatt.ConnectionPriority
@@ -22,6 +23,7 @@ class SimpleDeviceBluetoothManager(
             super.onServicesDiscovered(peripheral)
             peripheral.requestConnectionPriority(ConnectionPriority.HIGH)
             bluetoothPeripheralCallback.onServicesDiscovered(peripheral.address)
+            Log.d("TypeSENSOR", "${typeSensor.name}")
             when (typeSensor) {
                 TypeSensor.BIO1 -> {
                     // Acelerometro
@@ -63,6 +65,15 @@ class SimpleDeviceBluetoothManager(
                         byteArrayOf(BleUUID.ENABLE_REPORT_SENSORS.toByte()),
                         typeSensor
                     )
+                }
+                TypeSensor.CROLL -> {
+                    // Estado
+                    enableNotify(peripheral, UUID.fromString(typeSensor.UUID_STATUS_CHARACTERISTIC), true, typeSensor)
+
+                    // Acelerometro
+                    enableNotify(peripheral, UUID.fromString(typeSensor.UUID_MPU_CHARACTERISTIC), true, typeSensor)
+                    write(peripheral, UUID.fromString(typeSensor.UUID_TR_PERIOD), byteArrayOf(0, 16), typeSensor)
+                    write(peripheral, UUID.fromString(typeSensor.UUID_TAG_OPER), byteArrayOf(0x0F), typeSensor)
                 }
             }
 

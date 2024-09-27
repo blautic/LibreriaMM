@@ -5,6 +5,7 @@ import android.bluetooth.le.ScanResult
 import android.content.Context
 import android.os.Handler
 import android.os.Looper
+import android.util.Log
 import com.diegulog.ble.BleManager
 import com.diegulog.ble.BleManagerCallback
 import com.diegulog.ble.ScanFailure
@@ -58,10 +59,14 @@ class DeviceBluetoothManager (
                         it.bytes[5] == 0xBF.toByte() -> { // Compruebo si es Pikku (BLE 4)
                             TypeSensor.PIKKU
                         }
+                        it.bytes[5] == 0xB5.toByte() -> {
+                            TypeSensor.CROLL
+                        }
                         else -> { // Por defecto lo asigno al Pikku
                             TypeSensor.PIKKU
                         }
                     }
+                    Log.d("MMCORE", "SCAN BUTTON ${it.bytes.map { it1 -> it1.toInt() }}")
                     bluetoothManagerCallback.onDiscoveredPeripheral(
                         peripheral.address, ScanResult(
                             name = peripheral.name,
@@ -79,6 +84,7 @@ class DeviceBluetoothManager (
                 TypeSensor.BIO2 -> (scan[10].toInt() == 1)
                 TypeSensor.BIO1 -> (scan[10].toInt() == 1)
                 TypeSensor.PIKKU -> ((scan[16 + 2] and 0xFF.toByte()).toInt() == 1)
+                TypeSensor.CROLL -> (scan[8].toInt() == 1)
             }
         }
 
@@ -99,6 +105,10 @@ class DeviceBluetoothManager (
             }
             // Compruebo si es un Pikku (BLE 4)
             if(scan[5] == 0xBF.toByte()){
+                res = true
+            }
+            // Compruebo si es un Crol
+            if(scan[5] == 0xB5.toByte()){
                 res = true
             }
 
