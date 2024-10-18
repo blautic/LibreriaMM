@@ -2,6 +2,7 @@ plugins {
     alias(libs.plugins.androidApplication)
     alias(libs.plugins.jetbrainsKotlinAndroid)
     id("com.google.gms.google-services")
+    kotlin("plugin.serialization") version "1.4.21"
 }
 
 android {
@@ -69,5 +70,6 @@ dependencies {
     androidTestImplementation(platform(libs.androidx.compose.bom))
     androidTestImplementation(libs.androidx.ui.test.junit4)
     debugImplementation(libs.androidx.ui.tooling)
+    implementation("io.github.ujizin:camposer:0.2.0")
     debugImplementation(libs.androidx.ui.test.manifest)
 }

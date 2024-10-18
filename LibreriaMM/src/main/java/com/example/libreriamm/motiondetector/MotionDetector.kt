@@ -1,7 +1,10 @@
 package com.example.libreriamm.motiondetector
 
 import android.content.Context
+import android.os.Build
 import android.util.Log
+import androidx.annotation.RequiresApi
+import androidx.compose.ui.unit.dp
 import com.example.libreriamm.camara.Person
 import com.example.libreriamm.entity.Model
 import com.google.firebase.FirebaseApp
@@ -19,6 +22,8 @@ import org.tensorflow.lite.gpu.CompatibilityList
 import org.tensorflow.lite.gpu.GpuDelegate
 import timber.log.Timber
 import java.nio.FloatBuffer
+import java.time.Duration
+import java.time.LocalDateTime
 
 data class MoveNetData(
     var pointX: Float = 0f,
@@ -32,6 +37,7 @@ class MotionDetector(private val model: Model, private val tipo: Int) {
     interface MotionDetectorListener {
         fun onCorrectMotionRecognized(correctProb: Float, datasList: Array<Array<Array<Array<FloatArray>>>>)
         fun onOutputScores(outputScores: FloatArray)
+        fun onIncorrectMotionRecognized(mensaje: String)
     }
 
     private val coroutineScope = CoroutineScope(Dispatchers.Main)
@@ -56,8 +62,6 @@ class MotionDetector(private val model: Model, private val tipo: Int) {
 
     private var isStarted = false
 
-    private var selectMovIndex = 0
-
     fun setMotionDetectorListener(motionDetectorListener: MotionDetectorListener?) {
         this.motionDetectorListener = motionDetectorListener
     }
@@ -72,29 +76,27 @@ class MotionDetector(private val model: Model, private val tipo: Int) {
                 modelFile?.let { file ->
                     Log.d("MMCORE", "Inicializando ${file.name}")
                     currentJob = coroutineScope.launch {
-                        synchronized(lock) {
-                            Log.d("MMCORE", "Lock adquired")
-                            val compatList = CompatibilityList()
-                            options = Interpreter.Options()
-                            Log.d("MMCORE", "Options create ${options != null}")
-                            if (compatList.isDelegateSupportedOnThisDevice) {
-                                Log.d("MMCORE", "GPU Accelerate available")
-                                val delegateOptions = compatList.bestOptionsForThisDevice
-                                options!!.addDelegate(GpuDelegate(delegateOptions))
-                                Log.d("MMCORE", "GPU Accelerate available ready")
-                            } else {
-                                Log.d("MMCORE", "GPU Accelerate not available")
-                                // Fallback to CPU execution if GPU acceleration is not available
-                                options!!.setNumThreads(NUM_LITE_THREADS)
-                                Log.d("MMCORE", "GPU Accelerate not available ready")
-                            }
-                            Log.d("MMCORE", "Creating interpreter...")
-
-                            inferenceInterface = Interpreter(file, options)
-                            isStarted = true
-                            //Log.d("MMCORE", "Started resolve: ${isStarted}")
-                            Log.d("MMCORE", "Activada inferencia: ${isStarted}")
+                        Log.d("MMCORE", "Lock adquired")
+                        val compatList = CompatibilityList()
+                        options = Interpreter.Options()
+                        Log.d("MMCORE", "Options create ${options != null}")
+                        if (compatList.isDelegateSupportedOnThisDevice) {
+                            Log.d("MMCORE", "GPU Accelerate available")
+                            val delegateOptions = compatList.bestOptionsForThisDevice
+                            options!!.addDelegate(GpuDelegate(delegateOptions))
+                            Log.d("MMCORE", "GPU Accelerate available ready")
+                        } else {
+                            Log.d("MMCORE", "GPU Accelerate not available")
+                            // Fallback to CPU execution if GPU acceleration is not available
+                            options!!.setNumThreads(NUM_LITE_THREADS)
+                            Log.d("MMCORE", "GPU Accelerate not available ready")
                         }
+                        Log.d("MMCORE", "Creating interpreter...")
+
+                        inferenceInterface = Interpreter(file, options)
+                        isStarted = true
+                        //Log.d("MMCORE", "Started resolve: ${isStarted}")
+                        Log.d("MMCORE", "Activada inferencia: ${isStarted}")
                     }
                 }
             }.addOnFailureListener { t: Exception? ->
@@ -117,40 +119,67 @@ class MotionDetector(private val model: Model, private val tipo: Int) {
         }
     }
 
+    @RequiresApi(Build.VERSION_CODES.O)
     fun inference(datasList: Array<Array<Array<Array<FloatArray>>>>) {
-        synchronized(lock) {
-            Log.d("MMCORE", "inferencia activa... $isStarted")
-            inferenceInterface?.takeIf { isStarted }?.let { interpreter ->
-                if(tipo == 0) {
-                    Log.d("MMCORE", "Calculando inferencia tipo 1")
-                    var mapOfIndicesToOutputs: Map<Int, Array<FloatArray>> =
-                        mapOf(0 to arrayOf(floatArrayOf(0f, 0f)))
-                    interpreter.runForMultipleInputsOutputs(datasList, mapOfIndicesToOutputs)
-                    //Log.d("Resultados", "${mapOfIndicesToOutputs[0]?.get(0)?.get(0)} || ${mapOfIndicesToOutputs[0]?.get(0)?.get(1)}")
-                    var totalProb = 0f
-                    mapOfIndicesToOutputs[0]?.get(0)?.forEach { prob -> totalProb += prob }
-                    var scores = FloatArray(model.movements.size)
-                    for (i in 0 until model.movements.size) {
-                        scores[i] =
-                            ((mapOfIndicesToOutputs[0]?.get(0)?.get(i) ?: 0f) * 100f) / totalProb
-                    }
-                    if(model.fldSName > "Other"){
-                        scores = scores.reversedArray()
-                    }
-                    if(scores[0] > 80){
-                        motionDetectorListener?.onCorrectMotionRecognized(scores[0], datasList)
-                    }
-                    motionDetectorListener?.onOutputScores(scores)
-                }else{
-                    Log.d("MMCORE", "Calculando inferencia tipo != 0")
-                    var mapOfIndicesToOutputs: Map<Int, Array<FloatArray>> = mapOf(0 to arrayOf(floatArrayOf(0f, 0f, 0f, 0f)))
-                    interpreter.runForMultipleInputsOutputs(datasList, mapOfIndicesToOutputs)
-                    val scores = FloatArray(4)
-                    for (i in scores.indices) {
-                        scores[i] = (mapOfIndicesToOutputs[0]?.get(0)?.get(i) ?: 0f)
-                    }
-                    motionDetectorListener?.onOutputScores(scores)
+        Log.d("MMCORE", "inferencia activa... $isStarted")
+        inferenceInterface?.takeIf { isStarted }?.let { interpreter ->
+            if(tipo == 0) {
+                Log.d("MMCORE", "Calculando inferencia tipo 1")
+                val mapOfIndicesToOutputs: Map<Int, Array<FloatArray>> =
+                    mapOf(0 to arrayOf(FloatArray(model.movements.size){0f}))
+                val inicioI = LocalDateTime.now()
+                interpreter.runForMultipleInputsOutputs(datasList, mapOfIndicesToOutputs)
+                val finI = LocalDateTime.now()
+                Log.d("MMCORE_REND", "Inferencia: ${Duration.between(inicioI, finI).toMillis()}")
+                //Log.d("Resultados", "${mapOfIndicesToOutputs[0]?.get(0)?.get(0)} || ${mapOfIndicesToOutputs[0]?.get(0)?.get(1)}")
+                var totalProb = 0f
+                mapOfIndicesToOutputs[0]?.get(0)?.forEach { prob -> totalProb += prob }
+                val scores = FloatArray(model.movements.size)
+                for (i in 0 until model.movements.size) {
+                    scores[i] =
+                        ((mapOfIndicesToOutputs[0]?.get(0)?.get(i) ?: 0f) * 100f) / totalProb
                 }
+                val nombres = model.movements.sortedBy { it1 -> it1.fldSLabel }
+                Log.d("MMCORE", "Resultados inferencia: ${nombres.mapIndexed { index1, nom -> "${nom.fldSLabel}:${scores[index1]} " }}")
+                var indiceCorrect = model.movements.sortedBy { it1 -> it1.fldSLabel }.indexOfFirst { it1 -> it1.fldSLabel == model.fldSName }
+                if(indiceCorrect < 0){
+                    indiceCorrect = 0
+                }
+                var indiceOther = model.movements.sortedBy { it1 -> it1.fldSLabel }.indexOfFirst { it1 -> it1.fldSLabel == "Other" || it1.fldSLabel == "other" }
+                if(indiceOther < 0){
+                    indiceOther = 0
+                }
+                val resultado = scores[indiceCorrect]
+                Log.d("MMCORE", "Resultado inferencia = ${scores[indiceCorrect]}")
+                /*if(model.fldSName > "Other"){
+                    scores = scores.reversedArray()
+                }*/
+                val maximo = scores.maxOrNull() ?: 0f
+                val indiceMaximo = scores.indexOfFirst { it1 -> it1 == maximo }
+                val segundoMax = scores.filterIndexed { index, fl -> index != indiceMaximo }.maxOrNull() ?: 0f
+                Log.d("MMCORE", "Maximo valor es: ${model.movements.sortedBy { it1 -> it1.fldSLabel }[indiceMaximo].fldSLabel}: ${scores[indiceMaximo]}")
+                if(indiceMaximo != indiceOther && indiceMaximo != indiceCorrect){
+                    if(indiceMaximo*0.8 <= segundoMax) {
+                        motionDetectorListener?.onIncorrectMotionRecognized(model.movements.sortedBy { it1 -> it1.fldSLabel }[indiceMaximo].fldSLabel)
+                    }else{
+                        motionDetectorListener?.onIncorrectMotionRecognized("")
+                    }
+                }else{
+                    motionDetectorListener?.onIncorrectMotionRecognized("")
+                }
+                if(resultado > 80){
+                    motionDetectorListener?.onCorrectMotionRecognized(resultado, datasList)
+                }
+                motionDetectorListener?.onOutputScores(floatArrayOf(resultado))
+            }else{
+                Log.d("MMCORE", "Calculando inferencia tipo != 0")
+                var mapOfIndicesToOutputs: Map<Int, Array<FloatArray>> = mapOf(0 to arrayOf(floatArrayOf(0f, 0f, 0f, 0f)))
+                interpreter.runForMultipleInputsOutputs(datasList, mapOfIndicesToOutputs)
+                val scores = FloatArray(4)
+                for (i in scores.indices) {
+                    scores[i] = (mapOfIndicesToOutputs[0]?.get(0)?.get(i) ?: 0f)
+                }
+                motionDetectorListener?.onOutputScores(scores)
             }
         }
     }
@@ -232,9 +261,7 @@ class MotionDetector(private val model: Model, private val tipo: Int) {
     }
 
     init {
-        model.movements.sortedBy { it.fldSLabel }.forEachIndexed { index, movement ->
-            if (movement.fldSLabel != "Other") selectMovIndex = index
-        }
+        Log.d("MMCORE", "Inferencia activa restarted")
     }
 
 }

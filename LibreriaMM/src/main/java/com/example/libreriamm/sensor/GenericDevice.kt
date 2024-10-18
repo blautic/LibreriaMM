@@ -8,6 +8,8 @@ import kotlinx.coroutines.flow.StateFlow
 import org.koin.core.component.KoinComponent
 import kotlin.experimental.and
 import kotlin.math.abs
+import kotlin.math.pow
+import kotlin.math.sqrt
 
 class GenericDevice(
     val numDevice: Int,
@@ -35,20 +37,35 @@ class GenericDevice(
     val deviceStatusFlow: StateFlow<SensorStatus> get() = _deviceStatusFlow
 
     val sensorDatas = Array(typeSensor.Sensors.size){ SensorData() }
+    val hrs = mutableListOf<Double>()
     val maxEscale = Array(typeSensor.Sensors.size){ 1f }
     val lastStatusElectrodes = Array(typeSensor.numElectrodes){false}
     val emgBandStopPermanent: Array<Butterworth> = Array(typeSensor.numElectrodes){ Butterworth() }
+    val lowPass = Butterworth()
+    val bandpass = Butterworth()
+    val lowPass2 = Butterworth()
     val emgBandPassPermanent: Array<Butterworth> = Array(typeSensor.numElectrodes){Butterworth()}
     val emgLowPassEnvelop: Array<Butterworth> = Array(typeSensor.numElectrodes){Butterworth()}
+    val ecgHighPassPermanent: Array<Butterworth> = Array(typeSensor.numElectrodes){ Butterworth() }
+    val ecgBandStopPermanent: Array<Butterworth> = Array(typeSensor.numElectrodes){ Butterworth() }
     var cacheEnvelop: MutableList<Double> = mutableListOf()
     var calibrar: Boolean = false
+    var sampleAI = 0
+    var datasAI = 0
+    var sampleHr = 0
+    var datasHr = 0
 
     fun activeFilters(){
         for (i in 0 until typeSensor.numElectrodes) {
             emgBandStopPermanent[i].bandStop(2, typeSensor.samplingRateInHz.toDouble(), 50.0, 5.0)
             emgBandPassPermanent[i].bandPass(2, typeSensor.samplingRateInHz.toDouble(), 50.0, 40.0)
             emgLowPassEnvelop[i].lowPass(2, typeSensor.samplingRateInHz.toDouble(), 4.0)
+            ecgHighPassPermanent[i].highPass(2, typeSensor.samplingRateInHz.toDouble(), 0.5)
+            ecgBandStopPermanent[i].bandPass(2, typeSensor.samplingRateInHz.toDouble(), 50.0, 20.0)
         }
+        lowPass.lowPass(2, typeSensor.samplingRateInHz.toDouble(), 20.0)
+        bandpass.bandPass(4, typeSensor.samplingRateInHz.toDouble(), 20.0, 15.0)
+        lowPass2.lowPass(4, typeSensor.samplingRateInHz.toDouble(), 8.0)
     }
 
     fun enableCache(sensorNum: Int, enable: Boolean){
@@ -162,7 +179,7 @@ class GenericDevice(
     fun parseMPU(parse: BleBytesParser){
         val accScale = ACC_SCALE_4G / 4
         val gyrScale: Float = GYR_SCALE_1000 / 1000
-        var sample = parse.getIntValue(BleBytesParser.FORMAT_SINT16)
+        val sample = parse.getIntValue(BleBytesParser.FORMAT_SINT16)
         if (parse.getValue().size >= 8) {
             // sample++;
             sensorDatas[0].add((parse.getIntValue(BleBytesParser.FORMAT_SINT16) * accScale), sample)
@@ -174,11 +191,28 @@ class GenericDevice(
             sensorDatas[4].add((parse.getIntValue(BleBytesParser.FORMAT_SINT16) * gyrScale), sample)
             sensorDatas[5].add((parse.getIntValue(BleBytesParser.FORMAT_SINT16) * gyrScale), sample)
         }
+        datasAI += 1
+        if(datasAI >= 20 && sensorDatas[0].DataCache.size >= 20){
+            sensorDatas[6].add(calcAi(sensorDatas.slice(0..5).map { it1 -> it1.DataCache.takeLast(20) }), sampleAI)
+            sampleAI += 1
+            datasAI = 0
+        }
+    }
+    private fun calcAi(accList: List<List<Pair<Float, Int>>>): Float {
+        if (accList.isEmpty()) {
+            return 0f
+        }
+        val error = 1e-06
+        val diX = sqrt(accList[0].sumOf { acc -> (acc.first -  accList[0].map { acc1 -> acc1.first }.average()).pow(2.0) } / (accList[0].size - 1))
+        val diY = sqrt(accList[1].sumOf { acc -> (acc.first -  accList[1].map { acc1 -> acc1.first }.average()).pow(2.0) } / (accList[1].size - 1))
+        val diZ = sqrt(accList[2].sumOf { acc -> (acc.first -  accList[2].map { acc1 -> acc1.first }.average()).pow(2.0) } / (accList[2].size - 1))
+        val sum =
+            ((diX * diX - error) / error) + ((diY * diY - error) / error) + ((diZ * diZ - error) / error)
+        return sqrt((sum / 3).coerceAtLeast(0.0)).toFloat()
     }
 
     fun parseECG(parse: BleBytesParser, typeSensor: TypeSensor){
         if(typeSensor == TypeSensor.BIO2){
-            var dataFilter = Array(typeSensor.groupedData){0f}
             var sensor = (parse.getValue()[0] and 0x0C) as Byte
             sensor = (sensor.toInt() shr 2).toByte()
             val nSensor = sensor.toInt()
@@ -195,6 +229,39 @@ class GenericDevice(
                         ((parse.getValue()[3 * i + 3] and 0xFF.toByte()).toInt())
                 if (val_sample > 0x7FFFFF) val_sample -= 0xFFFFFF
                 val sample = val_sample * 5.96046448e-8 // (3*2)/Math.pow(2,24))/6;
+                if(nSensor == 0){
+                    var dataEcg = (sample)
+                    dataEcg = ecgHighPassPermanent[nSensor].filter(dataEcg)
+                    dataEcg = ecgBandStopPermanent[nSensor].filter(dataEcg)
+                    sensorDatas[11].add(dataEcg.toFloat() * 100f, sample.toInt())
+                    var hr = lowPass.filter(dataEcg)
+                    hr = bandpass.filter(hr)
+                    hr = abs(hr * 10)
+                    hr = lowPass2.filter(hr)
+                    hr = abs(hr)
+                    hrs.add(hr)
+                    sensorDatas[12].add(hr.toFloat(), sampleHr)
+                    //sensorDatas[12].add(1f, sampleHr)
+                    if(hrs.size >= 125){
+                        var max = 0.0
+                        var estado = 0
+                        var rpeaks = 0
+                        hrs.forEach {
+                            if(it > max){
+                                estado = 1
+                            }else{
+                                if(estado == 1){
+                                    rpeaks += 1
+                                    estado = 0
+                                }
+                            }
+                            max = it
+                        }
+                        //sensorDatas[12].add(rpeaks * 60f, sampleHr)
+                        sampleHr += 1
+                        hrs.clear()
+                    }
+                }
                 var data = (sample * 1000).toDouble()
                 data = emgBandStopPermanent[nSensor].filter(data)
                 data = emgBandPassPermanent[nSensor].filter(data)
@@ -206,8 +273,8 @@ class GenericDevice(
                         valor += cacheDato
                     }
                     valor /= cacheEnvelop.size
-                    if(maxEscale[nSensor + 6] < valor.toFloat()){
-                        maxEscale[nSensor + 6] = valor.toFloat()
+                    if(maxEscale[nSensor + 7] < valor.toFloat()){
+                        maxEscale[nSensor + 7] = valor.toFloat()
                     }
                     var valorFin = valor.toFloat()/maxEscale[nSensor + 6]
                     if(valorFin > 1f){
@@ -216,7 +283,7 @@ class GenericDevice(
                     if(valorFin < -1f){
                         valorFin = -1f
                     }
-                    sensorDatas[nSensor + 6].add(valorFin, 0)
+                    sensorDatas[nSensor + 7].add(valorFin, 0)
                     cacheEnvelop.clear()
                 }
             }

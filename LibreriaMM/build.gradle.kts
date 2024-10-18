@@ -70,8 +70,10 @@ dependencies {
     implementation("org.tensorflow:tensorflow-lite-gpu-api:2.12.0")
     implementation("org.tensorflow:tensorflow-lite-support:0.4.3")
 
+    implementation("io.github.ujizin:camposer:0.2.0")
+
     implementation("androidx.media3:media3-common:1.1.1")
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-core:1.3.2")
-    implementation("com.google.firebase:firebase-ml-modeldownloader-ktx:24.1.2")
+    implementation(libs.firebase.ml.modeldownloader.ktx)
 
 }

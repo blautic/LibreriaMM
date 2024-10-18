@@ -39,18 +39,20 @@ enum class TypeSensor(
             TypeData.GyrX,
             TypeData.GyrY,
             TypeData.GyrZ,
+            TypeData.AI,
             TypeData.Emg1,
             TypeData.Emg2,
             TypeData.Emg3,
             TypeData.Emg4,
-            TypeData.Ecg
+            TypeData.Ecg,
+            TypeData.HR
         ),
     ),
 
     BIO2(
         50,
         4,
-        125,
+        250,
         6,
         "0000ff04-0000-1000-8000-00805f9b34fb",
         "0000ff04-0000-1000-8000-00805f9b34fb",
@@ -69,11 +71,13 @@ enum class TypeSensor(
             TypeData.GyrX,
             TypeData.GyrY,
             TypeData.GyrZ,
+            TypeData.AI,
             TypeData.Emg1,
             TypeData.Emg2,
             TypeData.Emg3,
             TypeData.Emg4,
-            TypeData.Ecg
+            TypeData.Ecg,
+            TypeData.HR
         ),
     ),
     PIKKU(
@@ -97,7 +101,8 @@ enum class TypeSensor(
             TypeData.AccZ,
             TypeData.GyrX,
             TypeData.GyrY,
-            TypeData.GyrZ
+            TypeData.GyrZ,
+            TypeData.AI
         ),
     ),
     CROLL(
@@ -121,7 +126,8 @@ enum class TypeSensor(
             TypeData.AccZ,
             TypeData.GyrX,
             TypeData.GyrY,
-            TypeData.GyrZ
+            TypeData.GyrZ,
+            TypeData.AI
         ),
     )
 }
