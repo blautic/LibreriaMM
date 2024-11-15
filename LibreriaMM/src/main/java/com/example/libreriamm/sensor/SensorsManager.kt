@@ -84,7 +84,9 @@ class SensorsManager(val context: Context) : BluetoothManagerCallback {
     }
     private fun disconnect(sensor: GenericDevice) {
         try {
-            bluetoothManager.cancelConnection(sensor.address)
+            if(sensor.address != "") {
+                bluetoothManager.cancelConnection(sensor.address)
+            }
             sensor.setConnectionState(ConnectionState.DISCONNECTED)
             _connectionChange.value = Pair(sensor.numDevice, ConnectionState.DISCONNECTED)
             sensor.setStatus(0)
@@ -120,6 +122,7 @@ class SensorsManager(val context: Context) : BluetoothManagerCallback {
         sens?.setConnectionState(ConnectionState.DISCONNECTED)
         if (sens != null) {
             _connectionChange.value = Pair(sens.numDevice, ConnectionState.DISCONNECTED)
+            devices[devices.indexOf(sens)]!!.address = ""
             sens.setStatus(0)
         }
     }

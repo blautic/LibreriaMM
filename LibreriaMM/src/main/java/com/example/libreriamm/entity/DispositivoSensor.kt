@@ -13,4 +13,6 @@ data class DispositivoSensor(
     val fkSensor: Int,
     @SerialName("fkOwner")
     val fkOwner: Int,
+    @SerialName("fldBActive")
+    var fldBActive: Int = 1
 ): KMMParcelable

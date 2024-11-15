@@ -168,9 +168,9 @@ fun GreetingPreview() {
                 imageProxy.close()
             }
         }
-        mmCore.setmodels(listOf(reves))
-        mmCore.addGenericSensor(7, listOf(TypeData.AI))
-        mmCore.addGenericSensor(7, listOf(TypeData.HR))
+        mmCore.setmodels(listOf())
+        mmCore.addGenericSensor(1, listOf(TypeData.AI))
+        //mmCore.addGenericSensor(7, listOf(TypeData.HR))
     }
     mmCore.onMotionDetectorChange().asLiveData().observeForever{
         if (it != null){
@@ -201,15 +201,15 @@ fun GreetingPreview() {
                     ConnectionState.CONNECTED -> {
                         status = 2
                         val tipo = mmCore.getSensorType(it.first)
-                        mmCore.onSensorChange(1, TypeData.AI).asLiveData().observeForever{
-                            Log.d("AI", "${it.first}")
+                        mmCore.onSensorChange(1, TypeData.HR).asLiveData().observeForever{
+                            Log.d("HR", "${it.first}")
                         }
-                        mmCore.onSensorChange(1, TypeData.HR).asLiveData().observeForever{ it1 ->
+                        /*mmCore.onSensorChange(1, TypeData.HR).asLiveData().observeForever{ it1 ->
+                            Log.d("HR", "${it1.first}")
                             if(hrs.size > 300){
                                 hrs.removeAt(0)
                             }
                             hrs.add(it1.first)
-                            Log.d("HR", "${it1.first}")
                         }
                         mmCore.onSensorChange(1, TypeData.Ecg).asLiveData().observeForever{ it1 ->
                             if(ecgs.size > 300){
@@ -217,10 +217,10 @@ fun GreetingPreview() {
                             }
                             ecgs.add(it1.first)
                             Log.d("ECG", "${it1.first}")
-                        }
+                        }*/
                         Log.d("TipoSensor", tipo.name)
                         mmCore.enableAllCache(true)
-                        mmCore.startMotionDetectorIndex(listOf(0))
+                        //mmCore.startMotionDetectorIndex(listOf(0))
                     }
 
                     ConnectionState.DISCONNECTING -> status = 1

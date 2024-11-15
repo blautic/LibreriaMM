@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="cabeza">head</string>
+    <string name="hombroD">right shoulder</string>
+    <string name="hombroI">left shoulder</string>
+    <string name="brazoD">right arm</string>
+    <string name="brazoI">left arm</string>
+    <string name="manoD">right hand</string>
+    <string name="manoI">left hand</string>
+    <string name="caderaD">right hip</string>
+    <string name="caderaI">left hip</string>
+    <string name="piernaD">right leg</string>
+    <string name="piernaI">left leg</string>
+    <string name="pieD">right foot</string>
+    <string name="pieI">left foot</string>
+    <string name="cuerpo">body</string>
+    <string name="mas">more</string>
+    <string name="derecha">more to the right</string>
+    <string name="izquierda">more to the left</string>
+    <string name="arriba">upward</string>
+    <string name="abajo">downward</string>
+    <string name="inicio">Start the movement with your</string>
+    <string name="finaliza">Finish the movement with your</string>
+    <string name="medio1">Move your</string>
+    <string name="medio2">during the motion</string>
+</resources>

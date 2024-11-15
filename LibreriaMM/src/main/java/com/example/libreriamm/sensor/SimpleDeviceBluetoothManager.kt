@@ -47,8 +47,10 @@ class SimpleDeviceBluetoothManager(
                     write(peripheral, UUID.fromString(typeSensor.UUID_CH_FR), byteArrayOf(15, 2), typeSensor)
                     write(peripheral, UUID.fromString(typeSensor.UUID_TAG_OPER), byteArrayOf(4), typeSensor)
                     write(peripheral, UUID.fromString(typeSensor.UUID_CH_FR), byteArrayOf(15, 2), typeSensor)
+                    write(peripheral, UUID.fromString(typeSensor.UUID_TAG_OPER), byteArrayOf(6), typeSensor)
                     //write(peripheral, UUID.fromString(typeSensor.UUID_TAG_OPER), byteArrayOf(5), typeSensor)
                     enableNotify(peripheral, UUID.fromString(typeSensor.UUID_ECG_CHARACTERISTIC), true, typeSensor)
+                    enableNotify(peripheral, UUID.fromString(typeSensor.UUID_HR_CHARACTERISTIC), true, typeSensor)
                 }
                 TypeSensor.PIKKU -> {
                     // Estado

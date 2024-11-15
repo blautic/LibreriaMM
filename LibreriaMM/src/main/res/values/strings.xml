@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="cabeza">la cabeza</string>
+    <string name="hombroD">el hombro derecho</string>
+    <string name="hombroI">el hombro izquierdo</string>
+    <string name="brazoD">el brazo derecho</string>
+    <string name="brazoI">el brazo izquierdo</string>
+    <string name="manoD">la mano derecha</string>
+    <string name="manoI">la mano izquierda</string>
+    <string name="caderaD">la cadera derecha</string>
+    <string name="caderaI">la cadera izquierda</string>
+    <string name="piernaD">la pierna derecha</string>
+    <string name="piernaI">la pierna izquierda</string>
+    <string name="pieD">el pie derecho</string>
+    <string name="pieI">el pie izquierdo</string>
+    <string name="cuerpo">el cuerpo</string>
+    <string name="mas">mas</string>
+    <string name="derecha">mas a la derecha</string>
+    <string name="izquierda">mas a la izquierda</string>
+    <string name="arriba">mas arriba</string>
+    <string name="abajo">mas abajo</string>
+    <string name="inicio">Inicia el movimiento con</string>
+    <string name="finaliza">Finaliza el movimiento con</string>
+    <string name="medio1">Mueve</string>
+    <string name="medio2">a mitad del movimiento</string>
+</resources>

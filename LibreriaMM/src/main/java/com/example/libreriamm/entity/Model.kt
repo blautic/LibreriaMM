@@ -39,7 +39,7 @@ data class Model(
     @SerialName("versions")
     val versions: List<Version>,
     @SerialName("dispositivos")
-    val dispositivos: List<DispositivoSensor>,
+    var dispositivos: List<DispositivoSensor>,
     @SerialName("imagen")
     val imagen: String? = null,
     @SerialName("video")
