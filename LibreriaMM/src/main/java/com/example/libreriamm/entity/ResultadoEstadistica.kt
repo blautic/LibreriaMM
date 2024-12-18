@@ -1,0 +1,8 @@
+package com.example.libreriamm.entity
+
+data class ResultadoEstadistica(
+    var posicion: Int,
+    var sensor: Int,
+    var instante: Int,
+    var valor: Float,
+)

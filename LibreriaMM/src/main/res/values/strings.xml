@@ -19,7 +19,7 @@
     <string name="izquierda">mas a la izquierda</string>
     <string name="arriba">mas arriba</string>
     <string name="abajo">mas abajo</string>
-    <string name="inicio">Inicia el movimiento con</string>
+    <string name="inicioL">Inicia el movimiento con</string>
     <string name="finaliza">Finaliza el movimiento con</string>
     <string name="medio1">Mueve</string>
     <string name="medio2">a mitad del movimiento</string>

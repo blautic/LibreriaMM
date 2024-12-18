@@ -194,7 +194,7 @@ fun GreetingPreview() {
             DatoEstadistica(37, 0.060818303376436234f, 0.03449421748518944f),
             DatoEstadistica(38, 0.003646961646154523f, 0.04087794944643974f),
             DatoEstadistica(39, -0.07363607734441757f, 0.0394858717918396f),
-            DatoEstadistica(40, -0.13136692345142365f, 0.03407951816916466f))),
+            DatoEstadistica(40, -0.13136692345142365f, 0.03407951816916466f)), 1),
         ObjetoEstadistica(46, "AccY", listOf(
             DatoEstadistica(1, 0.2062796950340271f, 0.11293186992406845f),
             DatoEstadistica(2, 0.1916409730911255f, 0.1061900183558464f),
@@ -235,7 +235,7 @@ fun GreetingPreview() {
             DatoEstadistica(37, 0.22472813725471497f, 0.05987013503909111f),
             DatoEstadistica(38, 0.21073031425476074f, 0.070716492831707f),
             DatoEstadistica(39, 0.21283608675003052f, 0.06796838343143463f),
-            DatoEstadistica(40, 0.1904049813747406f, 0.07012572139501572f))),
+            DatoEstadistica(40, 0.1904049813747406f, 0.07012572139501572f)), 1),
         ObjetoEstadistica(47, "AccZ", listOf(
             DatoEstadistica(1, 0.14547155797481537f, 0.05323091894388199f),
             DatoEstadistica(2, 0.14428134262561798f, 0.046146392822265625f),
@@ -276,7 +276,7 @@ fun GreetingPreview() {
             DatoEstadistica(37, 0.16462701559066772f, 0.012996052391827106f),
             DatoEstadistica(38, 0.17921994626522064f, 0.02294330857694149f),
             DatoEstadistica(39, 0.1750084012746811f, 0.04248100891709328f),
-            DatoEstadistica(40, 0.16522212326526642f, 0.047513697296381f))),
+            DatoEstadistica(40, 0.16522212326526642f, 0.047513697296381f)), 1),
         ObjetoEstadistica(48, "GyrX", listOf(
             DatoEstadistica(1, -0.0004323458706494421f, 0.01767190732061863f),
             DatoEstadistica(2, -0.001871801563538611f, 0.024713754653930664f),
@@ -317,7 +317,7 @@ fun GreetingPreview() {
             DatoEstadistica(37, -0.0157526396214962f, 0.06638499349355698f),
             DatoEstadistica(38, -0.004064049571752548f, 0.07981669902801514f),
             DatoEstadistica(39, 0.0069327885285019875f, 0.08706451207399368f),
-            DatoEstadistica(40, 0.005905331578105688f, 0.06047670170664787f))),
+            DatoEstadistica(40, 0.005905331578105688f, 0.06047670170664787f)), 1),
         ObjetoEstadistica(49, "GyrY", listOf(
             DatoEstadistica(1, 0.05500452592968941f, 0.033344805240631104f),
             DatoEstadistica(2, 0.05164240300655365f, 0.022971076890826225f),
@@ -358,7 +358,7 @@ fun GreetingPreview() {
             DatoEstadistica(37, 0.1498509645462036f, 0.05285013094544411f),
             DatoEstadistica(38, 0.1576738804578781f, 0.03455140069127083f),
             DatoEstadistica(39, 0.1600339710712433f, 0.03538001328706741f),
-            DatoEstadistica(40, 0.1662851870059967f, 0.04051869735121727f))),
+            DatoEstadistica(40, 0.1662851870059967f, 0.04051869735121727f)), 1),
         ObjetoEstadistica(50, "GyrZ", listOf(
             DatoEstadistica(1, 0.00256864121183753f, 0.018284665420651436f),
             DatoEstadistica(2, 0.003514715237542987f, 0.015391603112220764f),
@@ -399,7 +399,7 @@ fun GreetingPreview() {
             DatoEstadistica(37, -0.014109724201261997f, 0.01626896858215332f),
             DatoEstadistica(38, 0.0005239009042270482f, 0.016693545505404472f),
             DatoEstadistica(39, 0.006469924468547106f, 0.016397161409258842f),
-            DatoEstadistica(40, 0.01271604560315609f, 0.018886910751461983f)))
+            DatoEstadistica(40, 0.01271604560315609f, 0.018886910751461983f)), 1)
     )
     val zancadaDer = Model(fldSName = "Zancada derecha", fldSDescription = "", fldNDuration = 2, fldBPublico = 1, fldSVideo = null, fldSImage = null, fkTipo = 2, fldBRegresivo = 0, id = 1455, fkOwner = 44, fldSUrl = null, fldDTimeCreateTime = "2024-06-24T16:39:56", fldSStatus = 2, fldNProgress = null, movements = listOf( Movement(fldSLabel = "Zancada derecha", fldSDescription = "Zancada derecha", id = 1815, fkOwner = 1455, fldDTimeCreateTime = "2024-06-24T16:39:56" ), Movement(fldSLabel = "Other", fldSDescription = "Other", id = 1816, fkOwner = 1455, fldDTimeCreateTime = "2024-06-24T16:39:56" ) ), devices = listOf( Device(fldNNumberDevice = 1, id = 4634, fkPosition = 0, fkOwner = 1455, position = Position(fldSName = "Puntos", fldSDescription = "0 - Ninguna", id = 0 ) ) ), versions = listOf(), dispositivos = listOf(DispositivoSensor(id = 4634, fkPosicion = 0, fkSensor = 7, fkOwner = 1455 ), DispositivoSensor(id = 4635, fkPosicion = 0, fkSensor = 8, fkOwner = 1455 ), DispositivoSensor(id = 4636, fkPosicion = 0, fkSensor = 9, fkOwner = 1455 ), DispositivoSensor(id = 4637, fkPosicion = 0, fkSensor = 10, fkOwner = 1455 ), DispositivoSensor(id = 4638, fkPosicion = 0, fkSensor = 11, fkOwner = 1455 ), DispositivoSensor(id = 4639, fkPosicion = 0, fkSensor = 12, fkOwner = 1455 ), DispositivoSensor(id = 4640, fkPosicion = 0, fkSensor = 13, fkOwner = 1455 ), DispositivoSensor(id = 4641, fkPosicion = 0, fkSensor = 14, fkOwner = 1455 ), DispositivoSensor(id = 4642, fkPosicion = 0, fkSensor = 15, fkOwner = 1455 ), DispositivoSensor(id = 4643, fkPosicion = 0, fkSensor = 16, fkOwner = 1455 ), DispositivoSensor(id = 4644, fkPosicion = 0, fkSensor = 17, fkOwner = 1455 ), DispositivoSensor(id = 4645, fkPosicion = 0, fkSensor = 18, fkOwner = 1455 ), DispositivoSensor(id = 4646, fkPosicion = 0, fkSensor = 19, fkOwner = 1455 ), DispositivoSensor(id = 4647, fkPosicion = 0, fkSensor = 20, fkOwner = 1455 ), DispositivoSensor(id = 4648, fkPosicion = 0, fkSensor = 21, fkOwner = 1455 ), DispositivoSensor(id = 4649, fkPosicion = 0, fkSensor = 22, fkOwner = 1455 ), DispositivoSensor(id = 4650, fkPosicion = 0, fkSensor = 23, fkOwner = 1455 ), DispositivoSensor(id = 4651, fkPosicion = 0, fkSensor = 29, fkOwner = 1455 ), DispositivoSensor(id = 4652, fkPosicion = 0, fkSensor = 30, fkOwner = 1455 ), DispositivoSensor(id = 4653, fkPosicion = 0, fkSensor = 31, fkOwner = 1455 ), DispositivoSensor(id = 4654, fkPosicion = 0, fkSensor = 32, fkOwner = 1455 ), DispositivoSensor(id = 4655, fkPosicion = 0, fkSensor = 33, fkOwner = 1455 ), DispositivoSensor(id = 4656, fkPosicion = 0, fkSensor = 34, fkOwner = 1455 ), DispositivoSensor(id = 4657, fkPosicion = 0, fkSensor = 35, fkOwner = 1455 ), DispositivoSensor(id = 4658, fkPosicion = 0, fkSensor = 36, fkOwner = 1455 ), DispositivoSensor(id = 4659, fkPosicion = 0, fkSensor = 37, fkOwner = 1455 ), DispositivoSensor(id = 4660, fkPosicion = 0, fkSensor = 38, fkOwner = 1455 ), DispositivoSensor(id = 4661, fkPosicion = 0, fkSensor = 39, fkOwner = 1455 ), DispositivoSensor(id = 4662, fkPosicion = 0, fkSensor = 40, fkOwner = 1455 ), DispositivoSensor(id = 4663, fkPosicion = 0, fkSensor = 41, fkOwner = 1455 ), DispositivoSensor(id = 4664, fkPosicion = 0, fkSensor = 42, fkOwner = 1455 ), DispositivoSensor(id = 4665, fkPosicion = 0, fkSensor = 43, fkOwner = 1455 ), DispositivoSensor(id = 4666, fkPosicion = 0, fkSensor = 44, fkOwner = 1455 ), DispositivoSensor(id = 4667, fkPosicion = 0, fkSensor = 45, fkOwner = 1455 ), DispositivoSensor(id = 4668, fkPosicion = 0, fkSensor = 84, fkOwner = 1455 ), DispositivoSensor(id = 4669, fkPosicion = 0, fkSensor = 85, fkOwner = 1455 ) ), tuyo = 0)
     val mmCore by remember { mutableStateOf(MMCore(context = context, coroutineContext = coroutineContext))}
@@ -580,8 +580,8 @@ fun GreetingPreview() {
                 verticalArrangement = Arrangement.Bottom
             ) {
                 Button(onClick = {
-                    val result = mmCore.getExplicabilidadDatas(0)
-                    Log.d("Resultado explicabilidad", "$result")
+                    val result1 = mmCore.getExplicabilidadDatas(0)
+                    Log.d("Resultado explicabilidad", "$result1")
                 }, modifier = Modifier.wrapContentHeight()) {
                     Icon(
                         painter = painterResource(id = android.R.drawable.ic_dialog_alert),

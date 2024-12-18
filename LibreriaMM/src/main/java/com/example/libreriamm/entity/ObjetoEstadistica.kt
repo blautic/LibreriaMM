@@ -9,5 +9,7 @@ data class ObjetoEstadistica(
     @SerialName("nombre")
     var nombre: String,
     @SerialName("datos")
-    var datos: List<DatoEstadistica>
+    var datos: List<DatoEstadistica>,
+    @SerialName("idPosicion")
+    var idPosicion: Int?,
 )

@@ -20,6 +20,7 @@ import timber.log.Timber
 import java.time.Duration
 import java.time.LocalDateTime
 import kotlin.math.max
+import kotlin.math.min
 
 data class MoveNetData(
     var pointX: Float = 0f,
@@ -32,7 +33,7 @@ class MotionDetector(private val model: Model, private val tipo: Int) {
 
     interface MotionDetectorListener {
         fun onCorrectMotionRecognized(correctProb: Float, datasList: Array<Array<Array<Array<FloatArray>>>>)
-        fun onOutputScores(outputScores: FloatArray)
+        fun onOutputScores(outputScores: FloatArray, datasInferencia: List<Triple<Int, List<Pair<Int, Float>>, Int>>)
         fun onIncorrectMotionRecognized(mensaje: String)
         fun onTimeCorrect(time: Float)
         fun onIntentRecognized()
@@ -60,9 +61,13 @@ class MotionDetector(private val model: Model, private val tipo: Int) {
 
     private var isStarted = false
     private var estado = 1
-    private var inicioT: LocalDateTime? = null
+    @RequiresApi(Build.VERSION_CODES.O)
+    private var inicioT: LocalDateTime = LocalDateTime.now()
 
     var ubralObjetivo = 80
+    var zonaA = 65
+    var zonaB = 60
+    var zonaC = 50
 
     fun setMotionDetectorListener(motionDetectorListener: MotionDetectorListener?) {
         this.motionDetectorListener = motionDetectorListener
@@ -124,7 +129,7 @@ class MotionDetector(private val model: Model, private val tipo: Int) {
     }
 
     @RequiresApi(Build.VERSION_CODES.O)
-    fun inference(datasList: Array<Array<Array<Array<FloatArray>>>>, inferenceCounter: Long) {
+    fun inference(datasList: Array<Array<Array<Array<FloatArray>>>>, inferenceCounter: Long, datosExpl: List<Triple<Int, List<Pair<Int, Float>>, Int>> = listOf()) {
         synchronized(lock) {
             Log.d("MMCORE", "inferencia activa... $isStarted")
             inferenceInterface?.takeIf { isStarted }?.let { interpreter ->
@@ -181,35 +186,58 @@ class MotionDetector(private val model: Model, private val tipo: Int) {
                             motionDetectorListener?.onIncorrectMotionRecognized(model.movements.sortedBy { it1 -> it1.fldSLabel }[indiceMaximo].fldSLabel)
                         }
                     }
-                    if (resultado > ubralObjetivo) { // Por encima de 80
-                        if (estado != 4) {
-                            inicioT = LocalDateTime.now()
-                        }
-                        estado = 4
-                    } else if (resultado > ubralObjetivo * 0.75) { // Por encima de 60
-                        estado = max(estado, 3)
-                    } else if (resultado > ubralObjetivo * 0.625) { // Por encima de 50
-                        estado = max(estado, 2)
-                    } else { // Por debajo de 50
-                        when (estado) {
-                            3 -> {
-                                motionDetectorListener?.onIntentRecognized()
+                    val A = zonaA/80f
+                    val B = zonaB/80f
+                    val C = zonaC/80f
+                    when{
+                        resultado >= ubralObjetivo -> { // > 80 E
+                            if(estado != 3){
+                                inicioT = LocalDateTime.now()
                             }
-
-                            4 -> {
+                            estado = 3
+                        }
+                        ubralObjetivo > resultado && resultado >= (ubralObjetivo*A) -> { // 80 - 65 D
+                            estado = max(estado, 2)
+                        }
+                        (ubralObjetivo*A) > resultado && resultado >= (ubralObjetivo*B) -> { // 65 - 60 C
+                            if(estado == 3){
+                                estado = 4
                                 motionDetectorListener?.onTimeCorrect(
                                     (Duration.between(
-                                        inicioT!!,
+                                        inicioT,
                                         LocalDateTime.now()
                                     ).toMillis()) / 1000f
                                 )
                             }
-
-                            else -> {}
+                            estado = max(estado, 2)
                         }
-                        estado = 1
+                        (ubralObjetivo*B) > resultado && resultado >= (ubralObjetivo*C) -> { // 60 - 50 B
+                            if(estado == 3){
+                                estado = 4
+                                motionDetectorListener?.onTimeCorrect(
+                                    (Duration.between(
+                                        inicioT,
+                                        LocalDateTime.now()
+                                    ).toMillis()) / 1000f
+                                )
+                            }
+                        }
+                        else -> { // < 50 A
+                            if(estado == 2){
+                                motionDetectorListener?.onIntentRecognized()
+                            }
+                            if(estado == 3){
+                                motionDetectorListener?.onTimeCorrect(
+                                    (Duration.between(
+                                        inicioT,
+                                        LocalDateTime.now()
+                                    ).toMillis()) / 1000f
+                                )
+                            }
+                            estado = 1
+                        }
                     }
-                    motionDetectorListener?.onOutputScores(floatArrayOf(resultado))
+                    motionDetectorListener?.onOutputScores(floatArrayOf(resultado), datosExpl)
                 } else {
                     Log.d("MMCORE", "Calculando inferencia tipo != 0")
                     var mapOfIndicesToOutputs: Map<Int, Array<FloatArray>> =
@@ -219,7 +247,7 @@ class MotionDetector(private val model: Model, private val tipo: Int) {
                     for (i in scores.indices) {
                         scores[i] = (mapOfIndicesToOutputs[0]?.get(0)?.get(i) ?: 0f)
                     }
-                    motionDetectorListener?.onOutputScores(scores)
+                    motionDetectorListener?.onOutputScores(scores, datosExpl)
                 }
             }
         }
@@ -290,7 +318,7 @@ class MotionDetector(private val model: Model, private val tipo: Int) {
 
         currentJob = coroutineScope.launch(Dispatchers.Main) {
             if (scores.isNotEmpty()) {
-                motionDetectorListener?.onOutputScores(scores)
+                motionDetectorListener?.onOutputScores(scores, listOf())
             }
         }
     }

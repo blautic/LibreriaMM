@@ -19,7 +19,7 @@
     <string name="izquierda">more to the left</string>
     <string name="arriba">upward</string>
     <string name="abajo">downward</string>
-    <string name="inicio">Start the movement with your</string>
+    <string name="inicioL">Start the movement with your</string>
     <string name="finaliza">Finish the movement with your</string>
     <string name="medio1">Move your</string>
     <string name="medio2">during the motion</string>

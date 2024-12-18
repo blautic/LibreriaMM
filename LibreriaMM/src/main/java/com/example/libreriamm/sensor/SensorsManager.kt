@@ -21,7 +21,15 @@ class SensorsManager(val context: Context) : BluetoothManagerCallback {
     private val bluetoothManager: DeviceBluetoothManager = DeviceBluetoothManager(this, context = context)
 
     fun setListSize(size: Int){
-        devices = MutableList(size) { GenericDevice(numDevice = 0, address = "", typeSensor = TypeSensor.PIKKU) }
+        if(devices.size != size) {
+            devices = MutableList(size) {
+                GenericDevice(
+                    numDevice = 0,
+                    address = "",
+                    typeSensor = TypeSensor.PIKKU
+                )
+            }
+        }
     }
     fun addSensor(){
         devices.add(GenericDevice(numDevice = 0, address = "", typeSensor = TypeSensor.PIKKU))
@@ -105,8 +113,10 @@ class SensorsManager(val context: Context) : BluetoothManagerCallback {
         sensores = listOf()
         indexConn = null
         val sens = getSensorNum(peripheral)
-        sens!!.setConnectionState(ConnectionState.CONNECTED)
-        _connectionChange.value = Pair(sens.numDevice, ConnectionState.CONNECTED)
+        if(sens != null) {
+            sens.setConnectionState(ConnectionState.CONNECTED)
+            _connectionChange.value = Pair(sens.numDevice, ConnectionState.CONNECTED)
+        }
     }
     override fun onConnectionFailed(peripheral: String) {
         conectando = false
