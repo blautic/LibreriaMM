@@ -1289,12 +1289,20 @@ class MMCore(val context: Context, val coroutineContext: CoroutineContext) {
     fun setRotacion(degrees: Float){
         rotacion = degrees
     }
-    fun addImage(bitmap: Bitmap){
+    fun addImage(bitmap: Bitmap, enableRotation: Boolean = true){
         val instante = LocalDateTime.now()
         finalBitmap = if (!frontCamera) {
-            rotateBitmap(bitmap, 90f+rotacion, true)
+            if (enableRotation){
+                rotateBitmap(bitmap, 90f+rotacion, true)
+            }else{
+                rotateBitmap(bitmap, rotacion, true)
+            }
         } else {
-            rotateBitmap(bitmap, 270f+(360-rotacion), true)
+            if (enableRotation){
+                rotateBitmap(bitmap, 270f+(360-rotacion), true)
+            } else {
+                rotateBitmap(bitmap, (360-rotacion), false)
+            }
         }
         val result = moveNet.estimateSinglePose(finalBitmap)
         _personRawFlow.value = result
@@ -1333,21 +1341,6 @@ class MMCore(val context: Context, val coroutineContext: CoroutineContext) {
                 }
             }
         }
-        /*if(moveNetCache.size < 10*duration && moveNetCache.size > 5*duration){
-            Log.d("MMCORE-CACHE", "Generando duplicados ${moveNetCache.size}/${10*duration}")
-            val newMovenetCache = mutableListOf<Triple<Person, Person, LocalDateTime>>()
-            for(j in 0 until (moveNetCache.size-1)){
-                newMovenetCache.add(Triple(moveNetCache[j].first, moveNetCache[j].second, moveNetCache[j].third))
-                newMovenetCache.add(Triple(
-                    interpolarPersona(moveNetCache[j].first, moveNetCache[j+1].first),
-                    interpolarPersona(moveNetCache[j].second, moveNetCache[j+1].second),
-                    moveNetCache[j].third.plusNanos(Duration.between(moveNetCache[j].third, moveNetCache[j+1].third).nano.toLong() / 2L)))
-            }
-            newMovenetCache.add(Triple(moveNetCache.last().first, moveNetCache.last().second, moveNetCache.last().third))
-            moveNetCache = newMovenetCache
-        }*/
-        //Log.d("MMCORE-MOVENETCACHE", "Size: ${moveNetCache.size}/${moveNetCacheRaw.size} ${tiempos[0]}")
-        //imageProxy.close()
     }
     fun addGenericSensor(positionId: Int, sensores: List<TypeData>){
         val listaSens:MutableList<TypeSensor> = mutableListOf()
