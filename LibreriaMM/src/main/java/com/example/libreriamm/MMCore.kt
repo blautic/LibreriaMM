@@ -777,6 +777,7 @@ class MMCore(val context: Context, val coroutineContext: CoroutineContext) {
 
     fun getExplicabilidad(index: Int): String{
         val UMBRAL_IMPORTANCIA = 0.6f
+        val POSICION_QUIETO = 0.2f
         val resultados = getExplicabilidadDatas(index).filter { it1 -> it1.posicion == 0 }
         var res = ""
         if(resultados.isNotEmpty()){
@@ -823,9 +824,15 @@ class MMCore(val context: Context, val coroutineContext: CoroutineContext) {
             }
             res = when(resultado.instante){
                 0 -> getString(context, R.string.inicioL) + " " + res
-                1 -> getString(context, R.string.medio1)+" "+res+" "+getString(context, R.string.medio2)
+                1 -> if(resultado.variabilidad > POSICION_QUIETO)
+                        getString(context, R.string.medio1)+" "+res+" "+getString(context, R.string.medio2)
+                    else
+                        getString(context, R.string.medio1a)+" "+res+" "+getString(context, R.string.medio2a)
                 2 -> getString(context, R.string.finaliza)+" "+res
-                3 -> getString(context, R.string.medio1)+" "+res
+                3 -> if(resultado.variabilidad > POSICION_QUIETO)
+                    getString(context, R.string.medio1)+" "+res
+                    else
+                        getString(context, R.string.medio1a)+" "+res
                 else -> {""}
             }
         }
@@ -841,6 +848,9 @@ class MMCore(val context: Context, val coroutineContext: CoroutineContext) {
             _explicabilidadFlow.value = getExplicabilidad(index)
         }
     }
+    private fun getVariabilidad(est: ObjetoEstadistica): Float{
+        return (est.datos.maxOf { it1 -> it1.media } - est.datos.minOf { it1 -> it1.media })/est.datos.size
+    }
     fun getExplicabilidadDatas(index: Int): List<ResultadoEstadistica>{ // Posicion, (Sensor, Instante, Valor)
         if(index >= estadisticas.size){
             return listOf()
@@ -848,7 +858,7 @@ class MMCore(val context: Context, val coroutineContext: CoroutineContext) {
         val datos = explicabilidad[index]
         maxExplicabilidad[index] = 0f
         Log.d("MMCORE-Explicabilidad", "Resultados: ${estadisticas[index].map { r -> "${r.id}-${r.idPosicion}"}} Datos:  ${datos.map { r -> "${r.first}-${r.third}"}}")
-        val resultados: MutableList<Triple<Int, MutableList<Float>, Int>> = datos.map { d -> Triple(d.first, MutableList(4){0f}, d.third) }.toMutableList()
+        val resultados: MutableList<Triple<Int, Pair<Float, MutableList<Float>>, Int>> = datos.map { d -> Triple(d.first, Pair(getVariabilidad(estadisticas[index].first { e -> e.id == d.first && e.idPosicion == d.third }), MutableList(4){0f}), d.third) }.toMutableList()
         resultados.forEach { res ->
             val dato = datos.firstOrNull { d -> d.first == res.first && d.third == res.third }
             if(dato != null) {
@@ -863,8 +873,8 @@ class MMCore(val context: Context, val coroutineContext: CoroutineContext) {
                         if(std < abs(a)){
                             val b = (a/std)
                             val pos = if(index1 <= fase1) 0 else if(index1 >= fase2) 2 else 1
-                            res.second[pos] += b / (if(pos == 2) 2f else 1f)
-                            res.second[3] += b / 4f
+                            res.second.second[pos] += b / (if(pos == 2) 2f else 1f)
+                            res.second.second[3] += b / 4f
                         }
                     }
                 }
@@ -872,7 +882,7 @@ class MMCore(val context: Context, val coroutineContext: CoroutineContext) {
                 Log.e("MMCORE-Explicabilidad", "No match resultados y datos: resultados: ${estadisticas[index].map { r -> r.id}} Datos:  ${datos.map { r -> r.first}}")
             }
         }
-        val res = resultados.flatMapIndexed{index1, triple -> triple.second.mapIndexed{index2, valor -> ResultadoEstadistica(sensor=triple.first, posicion=triple.third, instante=index2, valor=valor)}}.sortedByDescending { it1 -> abs(it1.valor) }
+        val res = resultados.flatMapIndexed{ _, triple -> triple.second.second.mapIndexed{ index2, valor -> ResultadoEstadistica(sensor=triple.first, posicion=triple.third, instante=index2, valor=valor, variabilidad=triple.second.first)}}.sortedByDescending { it1 -> abs(it1.valor) }
         return res
     }
     fun enableAllCache(enable: Boolean) =

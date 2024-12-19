@@ -23,4 +23,6 @@
     <string name="finaliza">Finish the movement with your</string>
     <string name="medio1">Move your</string>
     <string name="medio2">during the motion</string>
+    <string name="medio1a">Keep</string>
+    <string name="medio2a">during the motion</string>
 </resources>
