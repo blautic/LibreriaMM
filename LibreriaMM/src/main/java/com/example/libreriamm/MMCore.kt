@@ -1279,12 +1279,20 @@ class MMCore(val context: Context, val coroutineContext: CoroutineContext) {
     fun setRotacion(degrees: Float){
         rotacion = degrees
     }
-    fun addImage(bitmap: Bitmap){
+    fun addImage(bitmap: Bitmap, enableRotation: Boolean = true){
         val instante = LocalDateTime.now()
         finalBitmap = if (!frontCamera) {
-            rotateBitmap(bitmap, 90f+rotacion, true)
+            if (enableRotation){
+                rotateBitmap(bitmap, 90f+rotacion, true)
+            }else{
+                rotateBitmap(bitmap, rotacion, true)
+            }
         } else {
-            rotateBitmap(bitmap, 270f+(360-rotacion), true)
+            if (enableRotation){
+                rotateBitmap(bitmap, 270f+(360-rotacion), true)
+            } else {
+                rotateBitmap(bitmap, (360-rotacion), false)
+            }
         }
         val result = moveNet.estimateSinglePose(finalBitmap)
         _personRawFlow.value = result
