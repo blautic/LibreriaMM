@@ -49,8 +49,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.drawscope.DrawStyle
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.drawText
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
@@ -60,6 +62,8 @@ import androidx.compose.ui.viewinterop.AndroidView
 import androidx.lifecycle.asLiveData
 import com.example.libreriamm.MMCore
 import com.example.libreriamm.camara.BodyPart
+import com.example.libreriamm.camara.ObjetLabel
+import com.example.libreriamm.camara.Objeto
 import com.example.libreriamm.camara.Person
 import com.example.libreriamm.entity.DatoEstadistica
 import com.example.libreriamm.entity.Device
@@ -147,7 +151,8 @@ fun GreetingPreview() {
 
     var status by remember { mutableStateOf(0) }
     var status2 by remember { mutableStateOf(0) }
-    var result by remember { mutableStateOf(Person()) }
+    var result by remember { mutableStateOf(listOf<Person>()) }
+    var objetos by remember { mutableStateOf(listOf<Objeto>()) }
     Log.d("Sensores", "START")
     val context = LocalContext.current
     val coroutineContext: CoroutineContext = SupervisorJob() + Dispatchers.Main
@@ -414,12 +419,13 @@ fun GreetingPreview() {
         scope.launch {
             imageAnalyzer.update { imageProxy ->
                 mmCore.updateImage(imageProxy)
-                Log.d("Dibujar Persona Libreria", "Imagen Enviada")
                 imageProxy.close()
             }
         }
-        mmCore.setmodels(listOf(reves))
-        mmCore.setExplicabilidad(0, stadisticsReves)
+        //mmCore.setmodels(listOf(zancadaDer))
+        mmCore.setObjetsLabels(listOf(ObjetLabel.CHAIR, ObjetLabel.TV, ObjetLabel.CUP))
+        mmCore.addObjetLabel(ObjetLabel.DINING_TABLE)
+        //mmCore.setExplicabilidad(0, stadisticsReves)
         //mmCore.addGenericSensor(1, listOf(TypeData.AI))
         //mmCore.addGenericSensor(7, listOf(TypeData.HR))
     }
@@ -434,11 +440,6 @@ fun GreetingPreview() {
     mmCore.onMotionDetectorCorrectChange().asLiveData().observeForever{
         if (it != null){
             duracion = it.second
-        }
-    }
-    mmCore.onPersonDetected().asLiveData().observeForever{
-        if(it != null){
-            result = it
         }
     }
     mmCore.onConnectionChange().asLiveData().observeForever{
@@ -497,6 +498,21 @@ fun GreetingPreview() {
             }
         }
     }
+    /*mmCore.onPersonDetected().asLiveData().observeForever{
+        if(it != null){
+            result = it
+        }
+    }*/
+    mmCore.onObjectDetected().asLiveData().observeForever {
+        if(it != null){
+            objetos = it
+        }
+    }
+    mmCore.onPersonsDetected().asLiveData().observeForever {
+        if(it != null){
+            result = it
+        }
+    }
     LibreriaPruebaTheme {
         Box{
             CameraPreview(
@@ -516,8 +532,9 @@ fun GreetingPreview() {
                         bitmap = finalBitmap.value,
                         persons = result,
                         camSelector = camSelector,
+                        objetos = objetos
                     )
-                    Canvas(modifier = Modifier.wrapContentSize()){
+                    /*Canvas(modifier = Modifier.wrapContentSize()){
                         drawLine(
                             color = Color.White,
                             start = Offset(100f, 100f),
@@ -569,7 +586,7 @@ fun GreetingPreview() {
                                 )
                             }
                         }
-                    }
+                    }*/
                 }
             }
             Column(
@@ -659,7 +676,7 @@ fun GreetingPreview() {
                     )
                 }
                 Button(onClick = {
-                    mmCore.setmodels(List(5){zancadaDer})
+                    mmCore.setmodels(List(1){zancadaDer})
                     mmCore.enableAllCache(true)
                     mmCore.startMotionDetector()
                 }, modifier = Modifier.wrapContentHeight()) {
@@ -674,7 +691,7 @@ fun GreetingPreview() {
 }
 
 @Composable
-fun PersonDetectionResultNew(bitmap: Bitmap, persons: Person, camSelector: CamSelector) {
+fun PersonDetectionResultNew(bitmap: Bitmap, persons: List<Person>, objetos: List<Objeto>, camSelector: CamSelector) {
 
     Log.d("Dimensiones del bitmap", "Height: ${bitmap.height}  ||  ${bitmap.width}" )
     Log.d("Dimensiones de la pantalla", "Height: ${ LocalContext.current.resources.displayMetrics.heightPixels}  ||  ${LocalContext.current.resources.displayMetrics.widthPixels}" )
@@ -710,51 +727,107 @@ fun PersonDetectionResultNew(bitmap: Bitmap, persons: Person, camSelector: CamSe
             Pair(BodyPart.LEFT_HIP, BodyPart.LEFT_KNEE),
             Pair(BodyPart.RIGHT_HIP, BodyPart.RIGHT_KNEE),
             Pair(BodyPart.LEFT_KNEE, BodyPart.LEFT_ANKLE),
-            Pair(BodyPart.RIGHT_KNEE, BodyPart.RIGHT_ANKLE)
+            Pair(BodyPart.RIGHT_KNEE, BodyPart.RIGHT_ANKLE),
+
+            Pair(BodyPart.RIGHT_WRIST, BodyPart.RIGHT_PULGAR),
+            Pair(BodyPart.RIGHT_WRIST, BodyPart.RIGHT_INDICE),
+            Pair(BodyPart.RIGHT_WRIST, BodyPart.RIGHT_PINKY),
+            Pair(BodyPart.RIGHT_INDICE, BodyPart.RIGHT_PINKY),
+            Pair(BodyPart.RIGHT_ANKLE, BodyPart.RIGHT_TALON),
+            Pair(BodyPart.RIGHT_ANKLE, BodyPart.RIGHT_PIE),
+            Pair(BodyPart.RIGHT_TALON, BodyPart.RIGHT_PIE),
+
+            Pair(BodyPart.LEFT_WRIST, BodyPart.LEFT_PULGAR),
+            Pair(BodyPart.LEFT_WRIST, BodyPart.LEFT_INDICE),
+            Pair(BodyPart.LEFT_WRIST, BodyPart.LEFT_PINKY),
+            Pair(BodyPart.LEFT_INDICE, BodyPart.LEFT_PINKY),
+            Pair(BodyPart.LEFT_ANKLE, BodyPart.LEFT_TALON),
+            Pair(BodyPart.LEFT_ANKLE, BodyPart.LEFT_PIE),
+            Pair(BodyPart.LEFT_TALON, BodyPart.LEFT_PIE)
+
         )
 
-        persons.keyPoints.forEach { keyPoint ->
-            /*
-                El ancho de la imagen son 480
-                Para voltear los puntos hay que restarle a 480 la coordenada en X original
-             */
+        persons.forEach{ person ->
+            person.keyPoints.forEach { keyPoint ->
+                /*
+                    El ancho de la imagen son 480
+                    Para voltear los puntos hay que restarle a 480 la coordenada en X original
+                 */
 
-            if(camSelector == CamSelector.Front) {
-                drawCircle(
-                    color = Color.Red,
-                    center = Offset((480 - keyPoint.coordinate.x) * widthFactor, keyPoint.coordinate.y * heightFactor),
-                    radius = 10f
-                )
-            }else{
-                drawCircle(
-                    color = Color.Red,
-                    center = Offset(keyPoint.coordinate.x * widthFactor, keyPoint.coordinate.y * heightFactor),
-                    radius = 10f
-                )
-            }
-
-        }
-        connections.forEach { (startPart, endPart) ->
-            val startPoint = persons.keyPoints.find { it.bodyPart == startPart }
-            val endPoint = persons.keyPoints.find { it.bodyPart == endPart }
-            if (startPoint != null && endPoint != null) {
-                if(camSelector == CamSelector.Front) {
-                    drawLine(
+                if (camSelector == CamSelector.Front) {
+                    drawCircle(
                         color = Color.Red,
-                        start = Offset((480 - startPoint.coordinate.x) * widthFactor, startPoint.coordinate.y * heightFactor),
-                        end = Offset((480 - endPoint.coordinate.x) * widthFactor, endPoint.coordinate.y * heightFactor),
-                        strokeWidth = 5f
+                        center = Offset(
+                            (480 - keyPoint.coordinate.x) * widthFactor,
+                            keyPoint.coordinate.y * heightFactor
+                        ),
+                        radius = 10f
                     )
-                }else{
-                    drawLine(
+                } else {
+                    drawCircle(
                         color = Color.Red,
-                        start = Offset(startPoint.coordinate.x * widthFactor, startPoint.coordinate.y * heightFactor),
-                        end = Offset(endPoint.coordinate.x * widthFactor, endPoint.coordinate.y * heightFactor),
-                        strokeWidth = 5f
+                        center = Offset(
+                            keyPoint.coordinate.x * widthFactor,
+                            keyPoint.coordinate.y * heightFactor
+                        ),
+                        radius = 10f
                     )
                 }
+
+            }
+            connections.forEach { (startPart, endPart) ->
+                val startPoint = person.keyPoints.find { it.bodyPart == startPart }
+                val endPoint = person.keyPoints.find { it.bodyPart == endPart }
+                if (startPoint != null && endPoint != null) {
+                    if (camSelector == CamSelector.Front) {
+                        drawLine(
+                            color = Color.Red,
+                            start = Offset(
+                                (480 - startPoint.coordinate.x) * widthFactor,
+                                startPoint.coordinate.y * heightFactor
+                            ),
+                            end = Offset(
+                                (480 - endPoint.coordinate.x) * widthFactor,
+                                endPoint.coordinate.y * heightFactor
+                            ),
+                            strokeWidth = 5f
+                        )
+                    } else {
+                        drawLine(
+                            color = Color.Red,
+                            start = Offset(
+                                startPoint.coordinate.x * widthFactor,
+                                startPoint.coordinate.y * heightFactor
+                            ),
+                            end = Offset(
+                                endPoint.coordinate.x * widthFactor,
+                                endPoint.coordinate.y * heightFactor
+                            ),
+                            strokeWidth = 5f
+                        )
+                    }
+                }
+            }
+        }
+        objetos.forEach { it1 ->
+            Log.d("OBJETOS", "${it1}")
+            if(camSelector == CamSelector.Front){
+                drawRect(
+                    color = Color.Blue,
+                    topLeft = Offset((480 - it1.point.left) * widthFactor, it1.point.top * heightFactor),
+                    size = Size(it1.point.width() * -1f * widthFactor, it1.point.height() * heightFactor),
+                    alpha = 0.3f
+                )
+            }else{
+                drawRect(
+                    color = Color.Blue,
+                    topLeft = Offset(it1.point.left * widthFactor, it1.point.top * heightFactor),
+                    size = Size(it1.point.width() * widthFactor, it1.point.height() * heightFactor),
+                    alpha = 0.3f
+                )
             }
         }
     }
 
 }
+

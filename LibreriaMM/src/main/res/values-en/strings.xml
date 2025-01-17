@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="cabeza">head</string>
+    <string name="MMCORE_pon">Put</string>
     <string name="hombroD">right shoulder</string>
     <string name="hombroI">left shoulder</string>
     <string name="brazoD">right arm</string>
@@ -17,6 +18,7 @@
     <string name="mas">more</string>
     <string name="derecha">more to the right</string>
     <string name="izquierda">more to the left</string>
+    <string name="MMCORE_abajo">downward</string>
     <string name="arriba">upward</string>
     <string name="abajo">downward</string>
     <string name="inicioL">Start the movement with your</string>
@@ -25,4 +27,16 @@
     <string name="medio2">during the motion</string>
     <string name="medio1a">Keep</string>
     <string name="medio2a">during the motion</string>
+    <string name="MMCORE_derecha">to the right</string>
+    <string name="MMCORE_izquierda">to the left</string>
+    <string name="MMCORE_cerca">closer to the body</string>
+    <string name="MMCORE_lejos">further from the body</string>
+    <string name="MMCORE_arriba">upward</string>
+    <string name="MMCORE_inclinaAdelante">Lean your body forward</string>
+    <string name="MMCORE_inclinaAtras">Lean your body back</string>
+    <string name="MMCORE_giraD">Turn right</string>
+    <string name="MMCORE_giraI">Turn left</string>
+    <string name="MMCORE_RotaD">Rota el cuerpo en sentido horario</string>
+    <string name="MMCORE_RotaI">Rota el cuerpo en sentido anti-horario</string>
+    <string name="posInicial">Initial position reached</string>
 </resources>

@@ -32,6 +32,9 @@ class GenericDevice(
     private val _connectionStateFlow = MutableStateFlow(ConnectionState.DISCONNECTED)
     val connectionStateFlow: StateFlow<ConnectionState> get() = _connectionStateFlow
 
+    private val _groupedDataFlow = MutableStateFlow<List<Pair<Float, TypeData>>>(listOf())
+    val groupedDataFlow: StateFlow<List<Pair<Float, TypeData>>> get() = _groupedDataFlow
+
     private val deviceStatus = SensorStatus()
     private val _deviceStatusFlow = MutableStateFlow(deviceStatus)
     val deviceStatusFlow: StateFlow<SensorStatus> get() = _deviceStatusFlow
@@ -47,6 +50,7 @@ class GenericDevice(
     val ecgBandStopPermanent: Array<Butterworth> = Array(typeSensor.numElectrodes){ Butterworth() }
     var cacheEnvelop: MutableList<Double> = mutableListOf()
     var calibrar: Boolean = false
+    var sensorDatos = arrayOf<Pair<Float, TypeData>>()
     var sampleAI = 0
     var datasAI = 0
     var sampleHr = 0
@@ -174,6 +178,7 @@ class GenericDevice(
                 }
             }
         }
+        _groupedDataFlow.value = sensorDatos.toList()
     }
 
     fun parseMPU(parse: BleBytesParser){
@@ -182,18 +187,32 @@ class GenericDevice(
         val sample = parse.getIntValue(BleBytesParser.FORMAT_SINT16)
         if (parse.getValue().size >= 8) {
             // sample++;
-            sensorDatas[0].add((parse.getIntValue(BleBytesParser.FORMAT_SINT16) * accScale), sample)
-            sensorDatas[1].add((parse.getIntValue(BleBytesParser.FORMAT_SINT16) * accScale), sample)
-            sensorDatas[2].add((parse.getIntValue(BleBytesParser.FORMAT_SINT16) * accScale), sample)
+            val accX = (parse.getIntValue(BleBytesParser.FORMAT_SINT16) * accScale)
+            val accY = (parse.getIntValue(BleBytesParser.FORMAT_SINT16) * accScale)
+            val accZ = (parse.getIntValue(BleBytesParser.FORMAT_SINT16) * accScale)
+            sensorDatas[0].add(accX, sample)
+            sensorDatos[0] = Pair(accX, TypeData.AccX)
+            sensorDatas[1].add(accY, sample)
+            sensorDatos[1] = Pair(accY, TypeData.AccY)
+            sensorDatas[2].add(accZ, sample)
+            sensorDatos[2] = Pair(accZ, TypeData.AccZ)
         }
         if (parse.getValue().size >= 14) {
-            sensorDatas[3].add((parse.getIntValue(BleBytesParser.FORMAT_SINT16) * gyrScale), sample)
-            sensorDatas[4].add((parse.getIntValue(BleBytesParser.FORMAT_SINT16) * gyrScale), sample)
-            sensorDatas[5].add((parse.getIntValue(BleBytesParser.FORMAT_SINT16) * gyrScale), sample)
+            val gyrX = (parse.getIntValue(BleBytesParser.FORMAT_SINT16) * gyrScale)
+            val gyrY = (parse.getIntValue(BleBytesParser.FORMAT_SINT16) * gyrScale)
+            val gyrZ = (parse.getIntValue(BleBytesParser.FORMAT_SINT16) * gyrScale)
+            sensorDatas[3].add(gyrX, sample)
+            sensorDatos[3] = Pair(gyrX, TypeData.GyrX)
+            sensorDatas[4].add(gyrY, sample)
+            sensorDatos[4] = Pair(gyrY, TypeData.GyrY)
+            sensorDatas[5].add(gyrZ, sample)
+            sensorDatos[5] = Pair(gyrZ, TypeData.GyrZ)
         }
         datasAI += 1
         if(datasAI >= 20 && sensorDatas[0].DataCache.size >= 20){
-            sensorDatas[6].add(calcAi(sensorDatas.slice(0..5).map { it1 -> it1.DataCache.takeLast(20) }), sampleAI)
+            val ai = calcAi(sensorDatas.slice(0..5).map { it1 -> it1.DataCache.takeLast(20) })
+            sensorDatas[6].add(ai, sampleAI)
+            sensorDatos[6] = Pair(ai, TypeData.AI)
             sampleAI += 1
             datasAI = 0
         }
@@ -202,6 +221,7 @@ class GenericDevice(
         val hr = parse.getIntValue(FORMAT_UINT8)
         Log.d("HR1", "${hr}")
         sensorDatas[12].add(hr.toFloat(), sampleHr)
+        sensorDatos[12] = Pair(hr.toFloat(), TypeData.HR)
         sampleHr += 1
     }
     private fun calcAi(accList: List<List<Pair<Float, Int>>>): Float {
@@ -239,6 +259,7 @@ class GenericDevice(
                 dataEcg = ecgHighPassPermanent[nSensor].filter(dataEcg)
                 dataEcg = ecgBandStopPermanent[nSensor].filter(dataEcg)
                 sensorDatas[11].add(dataEcg.toFloat() * 100f, sample.toInt())
+                sensorDatos[11] = Pair(dataEcg.toFloat() * 100f, TypeData.Ecg)
                 var data = (sample * 1000).toDouble()
                 data = emgBandStopPermanent[nSensor].filter(data)
                 data = emgBandPassPermanent[nSensor].filter(data)
@@ -261,6 +282,13 @@ class GenericDevice(
                         valorFin = -1f
                     }
                     sensorDatas[nSensor + 7].add(valorFin, 0)
+                    sensorDatos[nSensor + 7] = Pair(valorFin, when(nSensor){
+                        0 -> TypeData.Emg1
+                        1 -> TypeData.Emg2
+                        2 -> TypeData.Emg3
+                        3 -> TypeData.Emg4
+                        else -> TypeData.Emg1
+                    })
                     cacheEnvelop.clear()
                 }
             }
