@@ -94,15 +94,19 @@ class PoseLandmarkerHelper(
             val baseOptions = baseOptionBuilder.build()
             // Create an option builder with base options and specific
             // options only use for Pose Landmarker.
-            val optionsBuilder =
+            var optionsBuilder =
                 PoseLandmarker.PoseLandmarkerOptions.builder()
                     .setBaseOptions(baseOptions)
                     .setMinPoseDetectionConfidence(minPoseDetectionConfidence)
                     .setMinTrackingConfidence(minPoseTrackingConfidence)
                     .setMinPosePresenceConfidence(minPosePresenceConfidence)
                     .setRunningMode(runningMode)
-                    .setResultListener(this::returnLivestreamResult)
+                    .setNumPoses(DEFAULT_NUM_POSES)
+            if(runningMode == RunningMode.LIVE_STREAM){
+                optionsBuilder = optionsBuilder.setResultListener(this::returnLivestreamResult)
                     .setErrorListener(this::returnLivestreamError)
+            }
+
 
             val options = optionsBuilder.build()
             poseLandmarker =
@@ -126,11 +130,11 @@ class PoseLandmarkerHelper(
     ) {
         val keypoints = mutableListOf<KeyPoint>()
         val res = mutableListOf<Person>()
+        var score = 0f
         Log.d("PERSON", "$result")
         result.let { it1 ->
             if(it1.landmarks().isNotEmpty()) {
                 it1.landmarks().forEach { lm ->
-                    var score = 0f
                     lm.forEachIndexed { index, landmarkt ->
                         val point = landmarkt
                         val part = BodyPart.fromMediaPipe(index)
@@ -294,9 +298,9 @@ class PoseLandmarkerHelper(
 
         const val DELEGATE_CPU = 0
         const val DELEGATE_GPU = 1
-        const val DEFAULT_POSE_DETECTION_CONFIDENCE = 0.5F
-        const val DEFAULT_POSE_TRACKING_CONFIDENCE = 0.5F
-        const val DEFAULT_POSE_PRESENCE_CONFIDENCE = 0.5F
+        const val DEFAULT_POSE_DETECTION_CONFIDENCE = 0.3F
+        const val DEFAULT_POSE_TRACKING_CONFIDENCE = 0.3F
+        const val DEFAULT_POSE_PRESENCE_CONFIDENCE = 0.3F
         const val DEFAULT_NUM_POSES = 1
         const val OTHER_ERROR = 0
         const val GPU_ERROR = 1
@@ -314,6 +318,6 @@ class PoseLandmarkerHelper(
 
     interface LandmarkerListener {
         fun onError(error: String, errorCode: Int = OTHER_ERROR)
-        fun onResultsPersons(result: List<Person>)
+        fun onResultsPersons(resultList: List<Person>)
     }
 }

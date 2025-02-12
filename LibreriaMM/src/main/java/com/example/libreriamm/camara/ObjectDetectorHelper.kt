@@ -54,7 +54,7 @@ class ObjectDetectorHelper(
     // will not change, a lazy val would be preferable.
     private var objectDetector: ObjectDetector? = null
     private var imageRotation = 0
-    private var objectLabels: MutableList<ObjetLabel> = mutableListOf()
+    var objectLabels: MutableList<ObjetLabel> = mutableListOf()
     private lateinit var imageProcessingOptions: ImageProcessingOptions
 
     init {
@@ -82,10 +82,10 @@ class ObjectDetectorHelper(
         bundle?.results?.forEach { it1 ->
             it1.detections()?.map{
                 val boxRect = RectF(
-                    it.boundingBox().left * 480,
-                    it.boundingBox().top * 640,
-                    it.boundingBox().right * 480,
-                    it.boundingBox().bottom * 640
+                    480 - it.boundingBox().left,
+                    it.boundingBox().top,
+                    480 - it.boundingBox().right,
+                    it.boundingBox().bottom
                 )
                 Pair(boxRect, it.categories()[0])
             }?.forEach {
@@ -124,12 +124,15 @@ class ObjectDetectorHelper(
         baseOptionsBuilder.setModelAssetPath(modelName)
 
         try {
-            val options = ObjectDetector.ObjectDetectorOptions.builder()
+            var optionsAux = ObjectDetector.ObjectDetectorOptions.builder()
                 .setBaseOptions(baseOptionsBuilder.build())
-                .setResultListener(this::returnLivestreamResult)
-                .setErrorListener(this::returnLivestreamError)
                 .setScoreThreshold(threshold).setRunningMode(runningMode).setCategoryAllowlist(objectLabels.map { it.label })
-                .setMaxResults(maxResults).setRunningMode(runningMode).build()
+                .setMaxResults(maxResults).setRunningMode(runningMode)
+            if(runningMode == RunningMode.LIVE_STREAM){
+                optionsAux = optionsAux.setResultListener(this::returnLivestreamResult)
+                    .setErrorListener(this::returnLivestreamError)
+            }
+            val options = optionsAux.build()
 
             imageProcessingOptions = ImageProcessingOptions.builder()
                 .setRotationDegrees(imageRotation).build()

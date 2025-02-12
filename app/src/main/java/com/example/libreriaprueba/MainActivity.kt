@@ -90,6 +90,7 @@ import com.ujizin.camposer.state.rememberImageAnalyzer
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlin.coroutines.CoroutineContext
 
@@ -411,9 +412,38 @@ fun GreetingPreview() {
     var respuesta by remember { mutableFloatStateOf(0.5f) }
     var duracion by remember { mutableFloatStateOf(0f) }
     var hrs = remember { mutableStateListOf<Float>() }
+    var cacheDetector by remember { mutableStateOf<List<Pair<Person, List<Objeto>>>>(listOf()) }
+    var reproduciendoCache by remember { mutableStateOf(0) }
+    var personCache by remember { mutableStateOf<Person?>(null) }
+    var raqueta by remember { mutableStateOf<Objeto?>(null) }
     var ecgs = remember { mutableStateListOf<Float>() }
     Log.d("TipoSensores", "${mmCore.getTipoSensores()}")
     Log.d("LabelsModels", "${mmCore.getLabels(0)}")
+
+    suspend fun actualizarCache(){
+        Log.d("CacheDetector", "${cacheDetector.size}")
+        if(cacheDetector.isNotEmpty()){
+            if(cacheDetector.size > reproduciendoCache){
+                personCache = cacheDetector[reproduciendoCache].first
+                if(cacheDetector[reproduciendoCache].second.isNotEmpty()) {
+                    raqueta = cacheDetector[reproduciendoCache].second[0]
+                }else{
+                    raqueta = null
+                }
+                reproduciendoCache += 1
+            }
+            if(reproduciendoCache >= cacheDetector.size){
+                reproduciendoCache = 0
+            }
+        }else{
+            personCache = null
+            raqueta = null
+            reproduciendoCache = 0
+        }
+        delay(100)
+        actualizarCache()
+    }
+
     LaunchedEffect(Unit){
         mmCore.setFrontCamera(camSelector != CamSelector.Back)
         scope.launch {
@@ -423,12 +453,17 @@ fun GreetingPreview() {
             }
         }
         //mmCore.setmodels(listOf(zancadaDer))
-        mmCore.setObjetsLabels(listOf(ObjetLabel.CHAIR, ObjetLabel.TV, ObjetLabel.CUP))
-        mmCore.addObjetLabel(ObjetLabel.DINING_TABLE)
+        //mmCore.setObjetsLabels(listOf(ObjetLabel.CHAIR, ObjetLabel.TV, ObjetLabel.CUP))
+        mmCore.addObjetLabel(ObjetLabel.TENNIS_RACKET)
         //mmCore.setExplicabilidad(0, stadisticsReves)
-        //mmCore.addGenericSensor(1, listOf(TypeData.AI))
+        mmCore.addGenericSensor(4, listOf(TypeData.AccX, TypeData.AccY, TypeData.AccZ, TypeData.AI))
         //mmCore.addGenericSensor(7, listOf(TypeData.HR))
+        scope.launch {
+            actualizarCache()
+        }
+
     }
+
     mmCore.onMotionDetectorChange().asLiveData().observeForever{
         if (it != null){
             if(it.first == 0) {
@@ -453,9 +488,11 @@ fun GreetingPreview() {
                     ConnectionState.CONNECTED -> {
                         status = 2
                         val tipo = mmCore.getSensorType(it.first)
-                        /*mmCore.onSensorChange(1, TypeData.HR).asLiveData().observeForever{
-                            Log.d("HR", "${it.first}")
-                        }*/
+                        mmCore.onSensorChange(4).asLiveData().observeForever{
+                            if(it != null) {
+                                Log.d("Datos", "${it.find { pair -> pair.second == TypeData.AI }?.first}")
+                            }
+                        }
                         /*mmCore.onSensorChange(1, TypeData.HR).asLiveData().observeForever{ it1 ->
                             Log.d("HR", "${it1.first}")
                             if(hrs.size > 300){
@@ -498,21 +535,26 @@ fun GreetingPreview() {
             }
         }
     }
-    /*mmCore.onPersonDetected().asLiveData().observeForever{
+    mmCore.onPersonsDetected().asLiveData().observeForever{
         if(it != null){
             result = it
         }
-    }*/
+    }
     mmCore.onObjectDetected().asLiveData().observeForever {
         if(it != null){
             objetos = it
         }
     }
-    mmCore.onPersonsDetected().asLiveData().observeForever {
+    mmCore.onCacheDetector().asLiveData().observeForever {
+        if(it.isNotEmpty()){
+            cacheDetector = it
+        }
+    }
+    /*mmCore.onPersonsDetected().asLiveData().observeForever {
         if(it != null){
             result = it
         }
-    }
+    }*/
     LibreriaPruebaTheme {
         Box{
             CameraPreview(
@@ -532,7 +574,9 @@ fun GreetingPreview() {
                         bitmap = finalBitmap.value,
                         persons = result,
                         camSelector = camSelector,
-                        objetos = objetos
+                        objetos = objetos,
+                        personaCache = personCache,
+                        raqueta = raqueta
                     )
                     /*Canvas(modifier = Modifier.wrapContentSize()){
                         drawLine(
@@ -597,8 +641,7 @@ fun GreetingPreview() {
                 verticalArrangement = Arrangement.Bottom
             ) {
                 Button(onClick = {
-                    val result1 = mmCore.getExplicabilidadDatas(0)
-                    Log.d("Resultado explicabilidad", "$result1")
+                    mmCore.startConnectDevice(4)
                 }, modifier = Modifier.wrapContentHeight()) {
                     Icon(
                         painter = painterResource(id = android.R.drawable.ic_dialog_alert),
@@ -632,7 +675,7 @@ fun GreetingPreview() {
                 Button(onClick = {
                     when (status2) {
                         0 -> {
-                            mmCore.startConnectDevice(1)
+                            mmCore.startConnectDevice(4)
                             status2 = 1
                         }
 
@@ -676,9 +719,7 @@ fun GreetingPreview() {
                     )
                 }
                 Button(onClick = {
-                    mmCore.setmodels(List(1){zancadaDer})
-                    mmCore.enableAllCache(true)
-                    mmCore.startMotionDetector()
+                    //mmCore.getCacheInference()
                 }, modifier = Modifier.wrapContentHeight()) {
                     Icon(
                         painter = painterResource(id = android.R.drawable.ic_menu_camera),
@@ -691,7 +732,7 @@ fun GreetingPreview() {
 }
 
 @Composable
-fun PersonDetectionResultNew(bitmap: Bitmap, persons: List<Person>, objetos: List<Objeto>, camSelector: CamSelector) {
+fun PersonDetectionResultNew(bitmap: Bitmap, persons: List<Person>, objetos: List<Objeto>, camSelector: CamSelector, personaCache: Person?, raqueta: Objeto?) {
 
     Log.d("Dimensiones del bitmap", "Height: ${bitmap.height}  ||  ${bitmap.width}" )
     Log.d("Dimensiones de la pantalla", "Height: ${ LocalContext.current.resources.displayMetrics.heightPixels}  ||  ${LocalContext.current.resources.displayMetrics.widthPixels}" )
@@ -746,7 +787,7 @@ fun PersonDetectionResultNew(bitmap: Bitmap, persons: List<Person>, objetos: Lis
             Pair(BodyPart.LEFT_TALON, BodyPart.LEFT_PIE)
 
         )
-
+        Log.d("PERSONAS", "Personas detectadas: ${persons.size}")
         persons.forEach{ person ->
             person.keyPoints.forEach { keyPoint ->
                 /*
@@ -824,6 +865,56 @@ fun PersonDetectionResultNew(bitmap: Bitmap, persons: List<Person>, objetos: Lis
                     topLeft = Offset(it1.point.left * widthFactor, it1.point.top * heightFactor),
                     size = Size(it1.point.width() * widthFactor, it1.point.height() * heightFactor),
                     alpha = 0.3f
+                )
+            }
+        }
+        if(personaCache != null){
+            connections.forEach { (startPart, endPart) ->
+                val startPoint = personaCache.keyPoints.find { it.bodyPart == startPart }
+                val endPoint = personaCache.keyPoints.find { it.bodyPart == endPart }
+                if (startPoint != null && endPoint != null) {
+                    if (camSelector == CamSelector.Back) {
+                        drawLine(
+                            color = Color.Blue,
+                            start = Offset(
+                                (480 - startPoint.coordinate.x) * widthFactor,
+                                startPoint.coordinate.y * heightFactor
+                            ),
+                            end = Offset(
+                                (480 - endPoint.coordinate.x) * widthFactor,
+                                endPoint.coordinate.y * heightFactor
+                            ),
+                            strokeWidth = 5f
+                        )
+                    } else {
+                        drawLine(
+                            color = Color.Blue,
+                            start = Offset(
+                                startPoint.coordinate.x * widthFactor,
+                                startPoint.coordinate.y * heightFactor
+                            ),
+                            end = Offset(
+                                endPoint.coordinate.x * widthFactor,
+                                endPoint.coordinate.y * heightFactor
+                            ),
+                            strokeWidth = 5f
+                        )
+                    }
+                }
+            }
+        }
+        if(raqueta != null){
+            if(camSelector == CamSelector.Front){
+                drawRect(
+                    color = Color.Blue,
+                    topLeft = Offset((480 - raqueta.point.left) * widthFactor, raqueta.point.top * heightFactor),
+                    size = Size(raqueta.point.width() * -1f * widthFactor, raqueta.point.height() * heightFactor),
+                )
+            }else{
+                drawRect(
+                    color = Color.Blue,
+                    topLeft = Offset(raqueta.point.left * widthFactor, raqueta.point.top * heightFactor),
+                    size = Size(raqueta.point.width() * widthFactor, raqueta.point.height() * heightFactor),
                 )
             }
         }

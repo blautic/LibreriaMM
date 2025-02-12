@@ -50,7 +50,7 @@ class GenericDevice(
     val ecgBandStopPermanent: Array<Butterworth> = Array(typeSensor.numElectrodes){ Butterworth() }
     var cacheEnvelop: MutableList<Double> = mutableListOf()
     var calibrar: Boolean = false
-    var sensorDatos = arrayOf<Pair<Float, TypeData>>()
+    var sensorDatos: Array<Pair<Float, TypeData>?> = Array(typeSensor.Sensors.size){ null }
     var sampleAI = 0
     var datasAI = 0
     var sampleHr = 0
@@ -178,7 +178,7 @@ class GenericDevice(
                 }
             }
         }
-        _groupedDataFlow.value = sensorDatos.toList()
+        _groupedDataFlow.value = sensorDatos.filterNotNull().toList()
     }
 
     fun parseMPU(parse: BleBytesParser){

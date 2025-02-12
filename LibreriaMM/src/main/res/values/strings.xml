@@ -30,7 +30,7 @@
     <string name="finaliza">Finaliza el movimiento con</string>
     <string name="medio1">Mueve</string>
     <string name="medio2">a mitad del movimiento</string>
-    <string name="medio1a">Manten</string>
+    <string name="medio1a">Coloca</string>
     <string name="medio2a">durante el movimiento</string>
     <string name="MMCORE_inclinaAdelante">Inclina el cuerpo hacia adelante</string>
     <string name="MMCORE_inclinaAtras">Inclina el cuerpo hacia atras</string>
