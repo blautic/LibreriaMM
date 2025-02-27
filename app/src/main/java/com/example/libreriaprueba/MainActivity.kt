@@ -152,12 +152,13 @@ fun GreetingPreview() {
 
     var status by remember { mutableStateOf(0) }
     var status2 by remember { mutableStateOf(0) }
+    var error by remember { mutableStateOf("") }
     var result by remember { mutableStateOf(listOf<Person>()) }
     var objetos by remember { mutableStateOf(listOf<Objeto>()) }
     Log.d("Sensores", "START")
     val context = LocalContext.current
     val coroutineContext: CoroutineContext = SupervisorJob() + Dispatchers.Main
-    val desplazamiento = Model(devices=listOf(Device(fldNNumberDevice=1, id=2430, fkPosition=7, fkOwner=1382, position=Position(fldSName="Chest", fldSDescription="7 - Pecho", id=7), image=null)), fkOwner=57, fkTipo=1, fldBAutoTraining=false, fldDTimeCreateTime="2024-03-19T11:34:24", fldNDuration=2, fldNProgress=null, fldSDescription="Desplazamiento a izquierda con sensor ziven en pecho", fldSImage=null, fldSName="DesplazamientoLeft", fldSStatus=2, fldSUrl=null, fldSVideo=null, id=1382, movements=listOf(Movement(fldSLabel="DesplazamientoLeft", fldSDescription="DesplazamientoLeft", id=1689, fkOwner=1382, fldDTimeCreateTime="2024-03-19T11:34:24"), Movement(fldSLabel="Other", fldSDescription="Other", id=1690, fkOwner=1382, fldDTimeCreateTime="2024-03-19T11:34:24")), versions=listOf(Version(fldFAccuracy=0.6666667f, fldNEpoch=500, fldFLoss=0.6557031f, fldSOptimizer="SGD", fldFLearningRate=0.0045f, id=540, fkOwner=1382, fldDTimeCreateTime="2024-03-19T11:39:37")), dispositivos=listOf(DispositivoSensor(fkPosicion=7, id=2430, fkSensor=1, fkOwner=1382), DispositivoSensor(fkPosicion=7, id=2431, fkSensor=2, fkOwner=1382), DispositivoSensor(fkPosicion=7, id=2432, fkSensor=3, fkOwner=1382), DispositivoSensor(fkPosicion=7, id=2433, fkSensor=4, fkOwner=1382), DispositivoSensor(fkPosicion=7, id=2434, fkSensor=5, fkOwner=1382), DispositivoSensor(fkPosicion=7, id=2435, fkSensor=6, fkOwner=1382)), imagen=null, video=null, fldBPublico=0, tuyo=0)
+    val desplazamiento = Model(fldSEtiquetaPos = "Frontal", devices=listOf(Device(fldNNumberDevice=1, id=2430, fkPosition=7, fkOwner=1382, position=Position(fldSName="Chest", fldSDescription="7 - Pecho", id=7), image=null)), fkOwner=57, fkTipo=1, fldBAutoTraining=false, fldDTimeCreateTime="2024-03-19T11:34:24", fldNDuration=2, fldNProgress=null, fldSDescription="Desplazamiento a izquierda con sensor ziven en pecho", fldSImage=null, fldSName="DesplazamientoLeft", fldSStatus=2, fldSUrl=null, fldSVideo=null, id=1382, movements=listOf(Movement(fldSLabel="DesplazamientoLeft", fldSDescription="DesplazamientoLeft", id=1689, fkOwner=1382, fldDTimeCreateTime="2024-03-19T11:34:24"), Movement(fldSLabel="Other", fldSDescription="Other", id=1690, fkOwner=1382, fldDTimeCreateTime="2024-03-19T11:34:24")), versions=listOf(Version(fldFAccuracy=0.6666667f, fldNEpoch=500, fldFLoss=0.6557031f, fldSOptimizer="SGD", fldFLearningRate=0.0045f, id=540, fkOwner=1382, fldDTimeCreateTime="2024-03-19T11:39:37")), dispositivos=listOf(DispositivoSensor(fkPosicion=7, id=2430, fkSensor=1, fkOwner=1382), DispositivoSensor(fkPosicion=7, id=2431, fkSensor=2, fkOwner=1382), DispositivoSensor(fkPosicion=7, id=2432, fkSensor=3, fkOwner=1382), DispositivoSensor(fkPosicion=7, id=2433, fkSensor=4, fkOwner=1382), DispositivoSensor(fkPosicion=7, id=2434, fkSensor=5, fkOwner=1382), DispositivoSensor(fkPosicion=7, id=2435, fkSensor=6, fkOwner=1382)), imagen=null, video=null, fldBPublico=0, tuyo=0)
     val reves = Model(fldSName="Reves", fldSDescription="", fldNDuration=2, fldBPublico=1, fkTipo=1, id=228, fkOwner=57, fldSUrl=null, fldDTimeCreateTime="2023-06-05T18:51:12", fldSStatus=2, fldNProgress=null, movements=listOf( Movement( fldSLabel="Reves", fldSDescription="Reves", id=393, fkOwner=228, fldDTimeCreateTime="2023-06-05T18:51:12"), Movement( fldSLabel="Other", fldSDescription="Other", id=394, fkOwner=228, fldDTimeCreateTime="2023-06-05T18:51:12") ), devices=listOf( Device( fldNNumberDevice=1, id=45, fkPosition=1, fkOwner=228, position= Position( fldSName="Right hand", fldSDescription="1 - Mano derecha", id=1))), versions=listOf( Version( fldFAccuracy= 0.9782609f, fldNEpoch=500, fldFLoss= 0.027077304f, fldSOptimizer="SGD", fldFLearningRate=0.0045f, id=539, fkOwner=228, fldDTimeCreateTime="2024-03-18T07:50:54" ) ), dispositivos=listOf( DispositivoSensor( id=45, fkPosicion=1, fkSensor=1, fkOwner=228), DispositivoSensor( id=46, fkPosicion=1, fkSensor=2, fkOwner=228), DispositivoSensor( id=47, fkPosicion=1, fkSensor=3, fkOwner=228), DispositivoSensor( id=48, fkPosicion=1, fkSensor=4, fkOwner=228), DispositivoSensor( id=49, fkPosicion=1, fkSensor=5, fkOwner=228), DispositivoSensor( id=50, fkPosicion=1, fkSensor=6, fkOwner=228)), tuyo=0)
     val stadisticsReves = listOf(
         ObjetoEstadistica(45, "AccX", listOf(
@@ -452,7 +453,8 @@ fun GreetingPreview() {
                 imageProxy.close()
             }
         }
-        //mmCore.setmodels(listOf(zancadaDer))
+        mmCore.setmodels(listOf(desplazamiento))
+        mmCore.startMotionDetector()
         //mmCore.setObjetsLabels(listOf(ObjetLabel.CHAIR, ObjetLabel.TV, ObjetLabel.CUP))
         mmCore.addObjetLabel(ObjetLabel.TENNIS_RACKET)
         //mmCore.setExplicabilidad(0, stadisticsReves)
@@ -475,6 +477,11 @@ fun GreetingPreview() {
     mmCore.onMotionDetectorCorrectChange().asLiveData().observeForever{
         if (it != null){
             duracion = it.second
+        }
+    }
+    mmCore.getMotionDetectorPosicion().asLiveData().observeForever {
+        if(it != null){
+            error = it
         }
     }
     mmCore.onConnectionChange().asLiveData().observeForever{
@@ -641,7 +648,7 @@ fun GreetingPreview() {
                 verticalArrangement = Arrangement.Bottom
             ) {
                 Button(onClick = {
-                    mmCore.startConnectDevice(4)
+                    mmCore.correccionesIniciales(0)
                 }, modifier = Modifier.wrapContentHeight()) {
                     Icon(
                         painter = painterResource(id = android.R.drawable.ic_dialog_alert),
@@ -697,7 +704,7 @@ fun GreetingPreview() {
                     )
                 }
                 Spacer(modifier = Modifier.height(10.dp))
-                Text(text = "%.2f".format(duracion) + "s")
+                Text(text = error)
                 LinearProgressIndicator(progress=respuesta, modifier = Modifier
                     .fillMaxWidth()
                     .height(50.dp))

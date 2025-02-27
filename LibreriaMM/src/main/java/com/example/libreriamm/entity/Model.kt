@@ -58,6 +58,8 @@ data class Model(
     val nomValor: String = "",
     @SerialName("fldSToken")
     val fldSToken: String? = null,
+    @SerialName("fldSEtiquetaPos")
+    val fldSEtiquetaPos: String? = null,
     @SerialName("creador")
     val creador: Creador? = null
 ): KMMParcelable

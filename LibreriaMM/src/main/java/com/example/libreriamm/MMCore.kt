@@ -27,6 +27,7 @@ import com.example.libreriamm.entity.Model
 import com.example.libreriamm.entity.ObjetoEstadistica
 import com.example.libreriamm.entity.ResultadoEstadistica
 import com.example.libreriamm.motiondetector.MotionDetector
+import com.example.libreriamm.motiondetector.PositionDetector
 import com.example.libreriamm.sensor.SensorsManager
 import com.example.libreriamm.sensor.TypeData
 import com.example.libreriamm.sensor.TypeSensor
@@ -126,6 +127,46 @@ class MMCore(val context: Context, val coroutineContext: CoroutineContext): Pose
     private var bitmapCache: MutableList<Pair<Bitmap, LocalDateTime>> = mutableListOf()
     private var libreInfObj = true
     private var posicionInicialEstado: Int? = null
+    private var positionDetector: PositionDetector = PositionDetector(object :
+        PositionDetector.PositionDetectorListener {
+        override fun onOutputScores(outputScores: FloatArray) {
+            Log.d("MMCORE_POSICION", "$posicionInicialEstado: ${outputScores.indices.maxBy { outputScores[it] }}")
+            if(posicionInicialEstado != null) {
+                Log.d("MMCORE_POSICION", "${modelos[posicionInicialEstado!!].fldSEtiquetaPos}")
+                if (modelos[posicionInicialEstado!!].fldSEtiquetaPos != null) {
+                    val salida = when (outputScores.indices.maxBy { outputScores[it] }) {
+                        0 -> "45Der"
+                        1 -> "45Izq"
+                        2 -> "Frontal"
+                        3 -> "Tumbado"
+                        4 -> "TumbadoArriba"
+                        else -> ""
+                    }
+                    Log.d("MMCORE_POSICION", "$salida VS ${modelos[posicionInicialEstado!!].fldSEtiquetaPos}")
+                    if (salida != modelos[posicionInicialEstado!!].fldSEtiquetaPos) {
+                        _motionDetectorPosicionFlow.value =
+                            when (modelos[posicionInicialEstado!!].fldSEtiquetaPos) {
+                                "45Der" -> getString(context, R.string.MMCORE_45Der)
+                                "45Izq" -> getString(context, R.string.MMCORE_45Izq)
+                                "Frontal" -> getString(context, R.string.MMCORE_Frontal)
+                                "Tumbado" -> getString(context, R.string.MMCORE_Tumbado)
+                                "TumbadoArriba" -> getString(
+                                    context,
+                                    R.string.MMCORE_TumbadoArriba
+                                )
+
+                                else -> getString(context, R.string.MMCORE_UNKNOW)
+                            }
+                    } else {
+                        _motionDetectorPosicionFlow.value = null
+                        _motionDetectorPosicionFlow.value =
+                            getString(context, R.string.posInicial)
+                        posicionInicialEstado = null
+                    }
+                }
+            }
+        }
+    })
 
 
 
@@ -578,201 +619,8 @@ class MMCore(val context: Context, val coroutineContext: CoroutineContext): Pose
             Log.d("MMCORE", "Md iniciado")
         }
     }
-    private fun distancia(a: PointF, b: PointF): Float{
-        return sqrt(((a.x - b.x)*(a.x - b.x))+((a.y - b.y)*(a.y - b.y)))
-    }
-    private fun puntoMedio(a: PointF, b: PointF): PointF{
-        return PointF((a.x + b.x)/2f, (a.y + b.y)/2f)
-    }
-    private fun rotacion(estadisticaPerson: Person, cachePerson: Person, UMBRAL_MINIMO_ROTACION: Double): Boolean{
-        val mediaHombrosE = puntoMedio(estadisticaPerson.keyPoints[6].coordinate, estadisticaPerson.keyPoints[5].coordinate)
-        val mediaCaderasE = puntoMedio(estadisticaPerson.keyPoints[12].coordinate, estadisticaPerson.keyPoints[11].coordinate)
-        var rotacionE = atan((mediaHombrosE.y - mediaCaderasE.y)/(mediaHombrosE.x - mediaCaderasE.x))
-        val mediaHombrosC = puntoMedio(cachePerson.keyPoints[6].coordinate, cachePerson.keyPoints[5].coordinate)
-        val mediaCaderasC = puntoMedio(cachePerson.keyPoints[12].coordinate, cachePerson.keyPoints[11].coordinate)
-        var rotacionC = atan((mediaHombrosC.y - mediaCaderasC.y)/(mediaHombrosC.x - mediaCaderasC.x))
-        while(rotacionC < 0){
-            rotacionC += PI.toFloat()
-        }
-        while(rotacionE < 0){
-            rotacionE += PI.toFloat()
-        }
-        Log.d("MMCORE-POSINI", "Rotacion: ${((rotacionE - rotacionC)*180f)/ PI}")
-        // Rotacion
-        if(abs(rotacionE - rotacionC) > UMBRAL_MINIMO_ROTACION){
-            _motionDetectorPosicionFlow.value = (if((rotacionE - rotacionC) > 0) getString(context, R.string.MMCORE_RotaD) else getString(context, R.string.MMCORE_RotaI))
-            return true
-        }
-        return false
-    }
-    private fun inclinacionLateral(estadisticaPerson: Person, cachePerson: Person, UMBRAL_MINIMO_INCLINACION_L: Double): Boolean{
-        val inclinacionLateralE = distancia(
-            estadisticaPerson.keyPoints[12].coordinate,
-            estadisticaPerson.keyPoints[11].coordinate
-        ) / distancia(
-            estadisticaPerson.keyPoints[6].coordinate,
-            estadisticaPerson.keyPoints[12].coordinate
-        )
-        val inclinacionLateralC = distancia(
-            cachePerson.keyPoints[12].coordinate,
-            cachePerson.keyPoints[11].coordinate
-        ) / distancia(
-            cachePerson.keyPoints[6].coordinate,
-            cachePerson.keyPoints[12].coordinate
-        )
-        Log.d("MMCORE-POSINI", "Inclinacion lateral: ${inclinacionLateralE - inclinacionLateralC}")
-        if (abs(inclinacionLateralE - inclinacionLateralC) > UMBRAL_MINIMO_INCLINACION_L) {
-            _motionDetectorPosicionFlow.value =
-                (if((inclinacionLateralE - inclinacionLateralC) > 0)
-                    if(cachePerson.keyPoints[0].coordinate.x > 0)
-                        getString(context, R.string.MMCORE_giraD)
-                    else
-                        getString(context, R.string.MMCORE_giraI)
-                else
-                    if(cachePerson.keyPoints[0].coordinate.x > 0)
-                        getString(context, R.string.MMCORE_giraD)
-                    else
-                        getString(context, R.string.MMCORE_giraI))
-            return true
-        }
-        return false
-    }
-    private fun inclinacionFrontal(estadisticaPerson: Person, cachePerson: Person, UMBRAL_MINIMO_INCLINACION_F: Double): Boolean{
-        val inclinacionFrontalE = distancia(
-            estadisticaPerson.keyPoints[6].coordinate,
-            estadisticaPerson.keyPoints[5].coordinate
-        ) - distancia(
-            estadisticaPerson.keyPoints[12].coordinate,
-            estadisticaPerson.keyPoints[11].coordinate
-        )
-        val inclinacionFrontalC = distancia(
-            cachePerson.keyPoints[6].coordinate,
-            cachePerson.keyPoints[5].coordinate
-        ) - distancia(
-            cachePerson.keyPoints[12].coordinate,
-            cachePerson.keyPoints[11].coordinate
-        )
-        Log.d("MMCORE-POSINI", "Inclinacion frontal: ${inclinacionFrontalE - inclinacionFrontalC}")
-        if (abs(inclinacionFrontalE - inclinacionFrontalC) > UMBRAL_MINIMO_INCLINACION_F) {
-            _motionDetectorPosicionFlow.value = if((inclinacionFrontalE - inclinacionFrontalC) > 0) getString(context, R.string.MMCORE_inclinaAdelante) else getString(context, R.string.MMCORE_inclinaAtras)
-            return true
-        }
-        return false
-    }
-    private fun posicionPuntos(estadisticaPerson: Person, cachePerson: Person, UMBRAL_MINIMO_PUNTO: Double): Boolean{
-        var results: MutableList<Pair<Int, Float>> = mutableListOf()
-        for(i in 0 until cachePerson.keyPoints.size){
-            results.add(Pair(i*2, abs(cachePerson.keyPoints[i].coordinate.x - estadisticaPerson.keyPoints[i].coordinate.x)))
-            results.add(Pair((i*2) + 1, abs(cachePerson.keyPoints[i].coordinate.y - estadisticaPerson.keyPoints[i].coordinate.y)))
-        }
-        val resultF = results.maxBy{ it1 -> it1.second }
-        Log.d("MMCORE-POSINI", "Punto: ${resultF.second}")
-        Log.d("MMCORE-POSINI", "Cabeza 1: ${cachePerson.keyPoints[0].coordinate.y} - ${estadisticaPerson.keyPoints[0].coordinate.y}")
-        Log.d("MMCORE-POSINI", "Cabeza 2: ${cachePerson.keyPoints[1].coordinate.y} - ${estadisticaPerson.keyPoints[1].coordinate.y}")
-        Log.d("MMCORE-POSINI", "Cabeza 3: ${cachePerson.keyPoints[2].coordinate.y} - ${estadisticaPerson.keyPoints[2].coordinate.y}")
-        Log.d("MMCORE-POSINI", "Cabeza 4: ${cachePerson.keyPoints[3].coordinate.y} - ${estadisticaPerson.keyPoints[3].coordinate.y}")
-        Log.d("MMCORE-POSINI", "Cabeza 5: ${cachePerson.keyPoints[4].coordinate.y} - ${estadisticaPerson.keyPoints[4].coordinate.y}")
-        if(abs(resultF.second) >= UMBRAL_MINIMO_PUNTO){
-            var res = getString(context, R.string.MMCORE_pon)
-            res += " " + when(resultF.first / 2){
-                0, 1, 2, 3, 4 -> getString(context, R.string.cabeza)
-                5 -> getString(context, R.string.hombroD)
-                6 -> getString(context, R.string.hombroI)
-                7 -> getString(context, R.string.brazoD)
-                8 -> getString(context, R.string.brazoI)
-                9 -> getString(context, R.string.manoD)
-                10 -> getString(context, R.string.manoI)
-                11 -> getString(context, R.string.caderaD)
-                12 -> getString(context, R.string.caderaI)
-                13 -> getString(context, R.string.piernaD)
-                14 -> getString(context, R.string.piernaI)
-                15 -> getString(context, R.string.pieD)
-                16 -> getString(context, R.string.pieI)
-                else -> {""}
-            }
-            res += " " + when(resultF.first % 2){
-                0 -> if(resultF.second > 0) getString(context, R.string.derecha) else getString(context, R.string.izquierda)
-                1 -> if(resultF.second < 0) getString(context, R.string.arriba) else getString(context, R.string.abajo)
-                else -> {""}
-            }
-            _motionDetectorPosicionFlow.value = res
-            return true
-        }
-        return false
-    }
     private fun getVariabilidad(est: ObjetoEstadistica): Float{
         return (est.datos.maxOf { it1 -> it1.media } - est.datos.minOf { it1 -> it1.media })/est.datos.size
-    }
-
-    private suspend fun correccionInicial(){
-        if(posicionInicialEstado != null) {
-            if(moveNetCache.size > 0) {
-                val cachePerson = moveNetCache.last().first
-                val conversor = 0.5
-                //    (estadisticas[posicionInicialEstado!!].filter { it1 -> it1.idPosicion == 0 && it1.id < 50 }.maxOfOrNull { it1 -> if(it1.datos.isNotEmpty()) it1.datos.first().std else 1f}?: 1f) * 2f
-                val UMBRAL_MINIMO_ROTACION = 0.7853982f * conversor
-                val UMBRAL_MINIMO_INCLINACION_L = 0.1f * conversor
-                val UMBRAL_MINIMO_INCLINACION_F = 0.1f * conversor
-                val UMBRAL_MINIMO_PUNTO = 0.25f * conversor
-                val datos =
-                    estadisticas[posicionInicialEstado!!].filter { it1 -> it1.idPosicion == 0 && it1.id < 50 }
-                        .map { it1 ->
-                            Pair(
-                                it1.id,
-                                if (it1.datos.isNotEmpty()) it1.datos.first().media else 0f
-                            )
-                        }
-                val estadisticaPerson = Person(keyPoints = cachePerson.keyPoints.map { it1 ->
-                    KeyPoint(
-                        bodyPart = it1.bodyPart,
-                        coordinate = PointF(it1.coordinate.x, it1.coordinate.y),
-                        score = it1.score
-                    )
-                }, score = cachePerson.score)
-                datos.forEach { d ->
-                    if (d.second != 0f) {
-                        if (d.first < 24) {
-                            estadisticaPerson.keyPoints[d.first - 7].coordinate.x = d.second
-                        } else {
-                            estadisticaPerson.keyPoints[d.first - 29].coordinate.y = d.second
-                        }
-                    }
-                }
-                // Rotacion del cuerpo
-                if (!rotacion(estadisticaPerson, cachePerson, UMBRAL_MINIMO_ROTACION)) {
-                    if (!inclinacionLateral(
-                            estadisticaPerson,
-                            cachePerson,
-                            UMBRAL_MINIMO_INCLINACION_L
-                        )
-                    ) {
-                        if (!inclinacionFrontal(
-                                estadisticaPerson,
-                                cachePerson,
-                                UMBRAL_MINIMO_INCLINACION_F
-                            )
-                        ) {
-                            if (!posicionPuntos(
-                                    estadisticaPerson,
-                                    cachePerson,
-                                    UMBRAL_MINIMO_PUNTO
-                                )
-                            ) {
-                                Log.d("MMCORE-POSINI", "Posicion alcanzada")
-                                _motionDetectorPosicionFlow.value = null
-                                _motionDetectorPosicionFlow.value =
-                                    getString(context, R.string.posInicial)
-                                posicionInicialEstado = null
-                                return
-                            }
-                        }
-                    }
-                }
-            }
-            delay(1000)
-            Log.d("MMCORE-POSINI", "Posicion reiniciado")
-            correccionInicial()
-        }
     }
     private suspend fun read(){
         while(true) {
@@ -800,6 +648,25 @@ class MMCore(val context: Context, val coroutineContext: CoroutineContext): Pose
                         moveNetCacheCopy.map { it1 -> it1.second }.toMutableList(),
                         duracionMax
                     )
+                //val datosPosInicial: MutableList<Triple<Int, Int, List<FloatArray>>> = mutableListOf()
+                if(posicionInicialEstado != null && resultsRawNorma.size > 0) {
+                    var datosPosInicial: Array<Array<Array<Array<FloatArray>>>> = Array(1){Array(1){Array(1){Array(26){FloatArray(1){0f} } } } }
+                    val sensoresPosicion = listOf(7, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 29, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45)
+                    sensoresPosicion.forEachIndexed { index, i ->
+                        datosPosInicial[0][0][0][index][0] = when(i){
+                            in 29..45 -> {
+                                resultsRawNorma.last().keyPoints[i - 29].coordinate.y
+                            }
+                            in 7..23 -> {
+                                resultsRawNorma.last().keyPoints[i - 7].coordinate.x
+                            }
+                            else -> {
+                                0f
+                            }
+                        }
+                    }
+                    positionDetector.inference(datosPosInicial)
+                }
                 dispositivosCombinados.forEach { disp ->
                     var datos: MutableList<Float> = mutableListOf()
                     if (disp.fkPosicion != 0) {
@@ -813,7 +680,8 @@ class MMCore(val context: Context, val coroutineContext: CoroutineContext): Pose
                         } else {
                             mutableListOf()
                         }
-                    } else {
+                    }
+                    else {
                         var acumuladoX = 0f
                         var acumuladoY = 0f
                         resultsRawNorma.forEachIndexed { indexD, person ->
@@ -1066,7 +934,8 @@ class MMCore(val context: Context, val coroutineContext: CoroutineContext): Pose
     fun getExplicabilidad(index: Int): String{
         val UMBRAL_IMPORTANCIA = 0.5f
         val POSICION_QUIETO = 0.001f
-        val resultados = getExplicabilidadDatas(index).filter { it1 -> (it1.posicion == 0) && (it1.sensor < 100) } // Me quedo solo los de camara y solo los que no sean manos y/o pies
+        val UMBRAL_MOVIMIENTO = 0.1
+        val resultados = getExplicabilidadDatas(index).filter { it1 -> (it1.posicion == 0) && (it1.sensor < 100) && (it1.sensor != 35 && it1.sensor != 34 && it1.sensor != 12 && it1.sensor != 13) } // Me quedo solo los de camara y solo los que no sean manos y/o pies
         val crecimientoX = estadisticas[index].filter { it1 -> it1.idPosicion == 84 }.flatMap{ it1 -> it1.datos.map { it2 -> it2.media }.take(it1.datos.size / 2) }.sum()
         val crecimientoY = estadisticas[index].filter { it1 -> it1.idPosicion == 85 }.flatMap{ it1 -> it1.datos.map { it2 -> it2.media }.take(it1.datos.size / 2) }.sum()
         var res = ""
@@ -1082,6 +951,7 @@ class MMCore(val context: Context, val coroutineContext: CoroutineContext): Pose
                     resultado = posDesp
                 }
             }
+            Log.d("MMCORE-EXPLICABILIDAD", "Resultado explicabilidad: $resultado")
             res += when(resultado.sensor){
                 7,8,9,10,11,29,30,31,32,33 -> getString(context, R.string.cabeza)
                 12, 34 -> getString(context, R.string.hombroD)
@@ -1100,7 +970,7 @@ class MMCore(val context: Context, val coroutineContext: CoroutineContext): Pose
                 else -> {""}
             }
             res += " "+ when (resultado.sensor) {
-                in 7..23 ->
+                in 7..19 ->
                     if(resultado.correccion >= 1)
                         getString(context, R.string.MMCORE_cerca)
                     else
@@ -1108,7 +978,15 @@ class MMCore(val context: Context, val coroutineContext: CoroutineContext): Pose
                             getString(context, R.string.MMCORE_lejos)
                         else
                             if(resultado.valor > 0) getString(context, R.string.MMCORE_derecha) else getString(context, R.string.MMCORE_izquierda)
-                in 29..45 ->
+                in 20..23 ->
+                    if(resultado.correccion >= 1)
+                        getString(context, R.string.MMCORE_dentro)
+                    else
+                        if(resultado.correccion > 0)
+                            getString(context, R.string.MMCORE_fuera)
+                        else
+                            if(resultado.valor > 0) getString(context, R.string.MMCORE_derecha) else getString(context, R.string.MMCORE_izquierda)
+                in 29..43 ->
                     if(resultado.valor > 0) getString(context, R.string.MMCORE_arriba)  else getString(context, R.string.MMCORE_abajo)
                     /*if(resultado.correccion >= 1)
                         getString(context, R.string.MMCORE_cerca)
@@ -1117,8 +995,20 @@ class MMCore(val context: Context, val coroutineContext: CoroutineContext): Pose
                             getString(context, R.string.MMCORE_lejos)
                         else
                             if(resultado.valor > 0) getString(context, R.string.MMCORE_arriba)  else getString(context, R.string.MMCORE_abajo)*/
-                84 -> if(crecimientoX > 0) getString(context, R.string.izquierda) else getString(context, R.string.derecha)
-                85 -> if(crecimientoY > 0) getString(context, R.string.arriba) else getString(context, R.string.abajo)
+                in 44..45 ->
+                    if(modelos[index].fldSEtiquetaPos == "Frontal") {
+                        if (resultado.valor > 0) getString(context, R.string.MMCORE_atras) else getString(context, R.string.MMCORE_adelante)
+                    }else{
+                        if(resultado.valor > 0) getString(context, R.string.MMCORE_arriba)  else getString(context, R.string.MMCORE_abajo)
+                    }
+                84 -> if(abs(crecimientoX) > UMBRAL_MOVIMIENTO)
+                        if(crecimientoX > 0) getString(context, R.string.izquierda) else getString(context, R.string.derecha)
+                    else
+                        if(resultado.valor > 0) getString(context, R.string.izquierda) else getString(context, R.string.derecha)
+                85 -> if(abs(crecimientoY) > UMBRAL_MOVIMIENTO)
+                        if(crecimientoY > 0) getString(context, R.string.arriba) else getString(context, R.string.abajo)
+                    else
+                        if(resultado.valor > 0) getString(context, R.string.arriba) else getString(context, R.string.abajo)
                 else -> {""}
             }
             res = when(resultado.instante){
@@ -1151,14 +1041,42 @@ class MMCore(val context: Context, val coroutineContext: CoroutineContext): Pose
         if(index >= estadisticas.size){
             return listOf()
         }
-        val datos = explicabilidad[index]
+        val estadistica = estadisticas[index]
+        val caderaEX = estadistica.firstOrNull{ d -> (d.id == 18 || d.id == 19) && d.idPosicion  == 0}
+        val caderaRX = explicabilidad[index].firstOrNull{ d -> (d.first == 18 || d.first == 19) && d.third  == 0}
+        val ajusteEscalaX = if(caderaEX != null && caderaRX != null){
+            caderaEX.datos.map { it1 -> it1.media }.zip(caderaRX.second.map { it1 -> it1.second}){ e, r ->
+                abs(e/r)
+            }
+        }else{
+            listOf()
+        }
+        val caderaEY = estadistica.firstOrNull{ d -> (d.id == 34 || d.id == 35) && d.idPosicion  == 0}
+        val caderaRY = explicabilidad[index].firstOrNull{ d -> (d.first == 34 || d.first == 35) && d.third  == 0}
+        val ajusteEscalaY = if(caderaEY != null && caderaRY != null){
+            caderaEY.datos.map { it1 -> it1.media }.zip(caderaRY.second.map { it1 -> it1.second}){ e, r ->
+                abs(e/r)
+            }
+        }else{
+            listOf()
+        }
+        val datos = explicabilidad[index].map { it1 ->
+            if (it1.second.size == ajusteEscalaX.size && it1.first in listOf(7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,111,112,113,114,115,116,117,118,119,120)){
+                Triple(it1.first, it1.second.mapIndexed { ind, pair ->  Pair(pair.first, pair.second * ajusteEscalaX[ind])}, it1.third)
+            }else if (it1.second.size == ajusteEscalaY.size && it1.first in listOf(29,30,31,32,33,34,35,36,37,38,39,40,41,42,43,44,45,121,122,123,124,125,126,127,128,129,130)){
+                Triple(it1.first, it1.second.mapIndexed { ind, pair ->  Pair(pair.first, pair.second * ajusteEscalaY[ind])}, it1.third)
+            }else{
+                it1
+            }
+        }
+
         maxExplicabilidad[index] = 0f
-        Log.d("MMCORE-Explicabilidad", "Resultados: ${estadisticas[index].map { r -> "${r.id}-${r.idPosicion}"}} Datos:  ${datos.map { r -> "${r.first}-${r.third}"}}")
-        val resultados: MutableList<Triple<Int, Pair<Float, MutableList<Pair<Float, Float>>>, Int>> = datos.map { d -> Triple(d.first, Pair(getVariabilidad(estadisticas[index].first { e -> e.id == d.first && e.idPosicion == d.third }), MutableList(4){Pair(0f, 0f)}), d.third) }.toMutableList()
+        Log.d("MMCORE-Explicabilidad", "Resultados: ${estadistica.map { r -> "${r.id}-${r.idPosicion}"}} Datos:  ${datos.map { r -> "${r.first}-${r.third}"}}")
+        val resultados: MutableList<Triple<Int, Pair<Float, MutableList<Pair<Float, Float>>>, Int>> = datos.map { d -> Triple(d.first, Pair(getVariabilidad(estadistica.first { e -> e.id == d.first && e.idPosicion == d.third }), MutableList(4){Pair(0f, 0f)}), d.third) }.toMutableList()
         resultados.forEach { res ->
             val dato = datos.firstOrNull { d -> d.first == res.first && d.third == res.third }
             if(dato != null) {
-                val est = estadisticas[index].first { e -> e.id == res.first && e.idPosicion == res.third }
+                val est = estadistica.first { e -> e.id == res.first && e.idPosicion == res.third }
                 val fase1 = floor(dato.second.size / 4f).toInt()
                 val fase2 = dato.second.size - fase1
                 dato.second.forEachIndexed { index1, d ->
@@ -1182,7 +1100,7 @@ class MMCore(val context: Context, val coroutineContext: CoroutineContext): Pose
                     }
                 }
             }else{
-                Log.e("MMCORE-Explicabilidad", "No match resultados y datos: resultados: ${estadisticas[index].map { r -> r.id}} Datos:  ${datos.map { r -> r.first}}")
+                Log.e("MMCORE-Explicabilidad", "No match resultados y datos: resultados: ${estadistica.map { r -> r.id}} Datos:  ${datos.map { r -> r.first}}")
             }
         }
         val res = resultados.flatMapIndexed{ _, triple -> triple.second.second.mapIndexed{ index2, valor -> ResultadoEstadistica(sensor=triple.first, posicion=triple.third, instante=index2, valor=valor.first, variabilidad=triple.second.first, correccion=valor.second)}}.sortedByDescending { it1 -> abs(it1.valor) }
@@ -1526,6 +1444,7 @@ class MMCore(val context: Context, val coroutineContext: CoroutineContext): Pose
         indices.forEach{ index ->
             startMotionDetectorIndexPrivate(index, optimizado)
         }
+        positionDetector.start()
         currentJob = scope.launch {
             delay((duration * 1000).toLong())
             read()
@@ -1533,6 +1452,7 @@ class MMCore(val context: Context, val coroutineContext: CoroutineContext): Pose
     }
     fun stopMotionDetector(){
         started = false
+        positionDetector.stop()
         motionDetectors.forEach { motionDetector ->
             motionDetector.first.stop()
             motionDetector.second.stop()
@@ -1656,18 +1576,8 @@ class MMCore(val context: Context, val coroutineContext: CoroutineContext): Pose
         }
     }
     fun correccionesIniciales(index: Int): Boolean{
-        if(index >= estadisticas.size){
-            return false
-        }
-        if(estadisticas[index].isEmpty()){
-            return false
-        }
         if(posicionInicialEstado == null){
             posicionInicialEstado = index
-            currentJob = scope.launch {
-                Log.d("MMCORE-POSINI", "Posicion inicial activada")
-                correccionInicial()
-            }
             return true
         }else{
             return false

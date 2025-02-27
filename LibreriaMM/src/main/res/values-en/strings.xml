@@ -19,6 +19,7 @@
     <string name="derecha">more to the right</string>
     <string name="izquierda">more to the left</string>
     <string name="MMCORE_abajo">downward</string>
+    <string name="MMCORE_adelante">forward</string>
     <string name="arriba">upward</string>
     <string name="abajo">downward</string>
     <string name="inicioL">Start the movement with your</string>
@@ -39,4 +40,13 @@
     <string name="MMCORE_RotaD">Rota el cuerpo en sentido horario</string>
     <string name="MMCORE_RotaI">Rota el cuerpo en sentido anti-horario</string>
     <string name="posInicial">Initial position reached</string>
+    <string name="MMCORE_45Der">Face the camera at 45 degrees to the right</string>
+    <string name="MMCORE_Frontal">"Face the camera "</string>
+    <string name="MMCORE_Tumbado">Lie on the floor</string>
+    <string name="MMCORE_TumbadoArriba">Lie on the floor face up</string>
+    <string name="MMCORE_UNKNOW">Badly positioned</string>
+    <string name="MMCORE_45Izq">Face the camera 45 degrees to the left</string>
+    <string name="MMCORE_atras">back</string>
+    <string name="MMCORE_dentro">towards the center</string>
+    <string name="MMCORE_fuera">outwards</string>
 </resources>

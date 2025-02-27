@@ -68,6 +68,7 @@ class MotionDetector(private val model: Model, private val tipo: Int) {
     var zonaA = 65
     var zonaB = 60
     var zonaC = 50
+    var contador_reintentos = 0
 
     fun setMotionDetectorListener(motionDetectorListener: MotionDetectorListener?) {
         this.motionDetectorListener = motionDetectorListener
@@ -111,10 +112,17 @@ class MotionDetector(private val model: Model, private val tipo: Int) {
             }.addOnFailureListener { t: Exception? ->
                 Log.d("MMCORE ERROR", "MODEL DOWNLOAD: ${t}")
                 Timber.e(t)
+                contador_reintentos += 1
+                if(contador_reintentos <= 4){
+                    start()
+                }else{
+                    motionDetectorListener?.onIncorrectMotionRecognized("Download Model from Firebase Error")
+                }
             }
     }
 
     fun stop() {
+        contador_reintentos = 0
         if(currentJob!= null) {
             currentJob!!.cancel()
         }

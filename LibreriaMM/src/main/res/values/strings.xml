@@ -24,6 +24,8 @@
     <string name="MMCORE_lejos">mas lejos del cuerpo</string>
     <string name="MMCORE_arriba">arriba</string>
     <string name="MMCORE_abajo">abajo</string>
+    <string name="MMCORE_atras">atrás</string>
+    <string name="MMCORE_adelante">adelante</string>
     <string name="arriba">mas arriba</string>
     <string name="abajo">mas abajo</string>
     <string name="inicioL">Inicia el movimiento con</string>
@@ -39,4 +41,12 @@
     <string name="MMCORE_RotaD">Rota el cuerpo en sentido horario</string>
     <string name="MMCORE_RotaI">Rota el cuerpo en sentido antihorario</string>
     <string name="posInicial">Posicion inicial alcanzada</string>
+    <string name="MMCORE_45Der">Ponte frente a la cámara a 45 grados a la derecha</string>
+    <string name="MMCORE_45Izq">Ponte frente a la cámara a 45 grados a la izquierda</string>
+    <string name="MMCORE_Frontal">Ponte frente a la camara</string>
+    <string name="MMCORE_Tumbado">Tumbate en el suelo</string>
+    <string name="MMCORE_TumbadoArriba">Tumbate en el suelo boca arriba</string>
+    <string name="MMCORE_UNKNOW">Mal posicionado</string>
+    <string name="MMCORE_dentro">hacia el centro</string>
+    <string name="MMCORE_fuera">hacia fuera</string>
 </resources>
