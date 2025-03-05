@@ -55,7 +55,7 @@ class SensorsManager(val context: Context) : BluetoothManagerCallback {
         return devices.find { it!!.numDevice == numDevice}
     }
 
-    fun connect(numSensor: Int, address: String, typeSensor: TypeSensor) {
+    fun connect(numSensor: Int, address: String, typeSensor: TypeSensor, enableSensors: GenericDevice.EnableSensors) {
         conectando = true
         var sens = getSensorNum(address)
         /*if(sens != null){
@@ -65,6 +65,7 @@ class SensorsManager(val context: Context) : BluetoothManagerCallback {
             address = address,
             typeSensor = typeSensor)
         sens.activeFilters()
+        sens.setSensors(enableSensors)
         bluetoothManager.connectPeripheral(sens.numDevice, sens.address, sens)
         sens.setConnectionState(ConnectionState.CONNECTING)
         devices = devices.apply { set(numSensor, sens) }
@@ -140,7 +141,8 @@ class SensorsManager(val context: Context) : BluetoothManagerCallback {
     var conectando = false
     var sensores: List<TypeSensor> = listOf()
     var indexConn: Int? = null
-    fun conectar(address: String, typeSensor: TypeSensor, index: Int) {
+    var enableSensors = GenericDevice.EnableSensors(true, true, true)
+    fun conectar(address: String, typeSensor: TypeSensor, index: Int, enableSensors: GenericDevice.EnableSensors) {
         stopScan()
         buscando = false
         sensores = listOf()
@@ -148,7 +150,8 @@ class SensorsManager(val context: Context) : BluetoothManagerCallback {
         connect(
             numSensor = index,
             address = address,
-            typeSensor = typeSensor
+            typeSensor = typeSensor,
+            enableSensors = enableSensors
         )
     }
 
@@ -165,7 +168,7 @@ class SensorsManager(val context: Context) : BluetoothManagerCallback {
                             onScanFailed("Ya se esta realizando una conexion")
                         }else{
                             stopScan()
-                            conectar(scanResult.address, scanResult.typeSensor, indexConn!!)
+                            conectar(scanResult.address, scanResult.typeSensor, indexConn!!, enableSensors)
                         }
                     }else{
                         onScanFailed("Tipo de sensor no valido")

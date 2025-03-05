@@ -23,6 +23,14 @@ class GenericDevice(
     object BluetoothUUIDs {
         const val UUID_TAG_OPER = "0000ff35-0000-1000-8000-00805f9b34fb"
     }
+    data class EnableSensors(
+        val emg: Boolean = false,
+        val mpu: Boolean = false,
+        val hr: Boolean = false
+    )
+    fun setSensors(enableSensors: EnableSensors){
+        simpleDeviceBluetoothManager.enableSensors = enableSensors
+    }
 
     //BLUETOOTH MANAGER
     val simpleDeviceBluetoothManager: SimpleDeviceBluetoothManager =
@@ -141,9 +149,11 @@ class GenericDevice(
             TypeSensor.BIO2 -> {
                 when {
                     characteristic.equals(TypeSensor.BIO2.UUID_ACCELEROMETER_CHARACTERISTIC, ignoreCase = true) -> {
+                        Log.d("MMCORE-Parse", "Parse MPU")
                         parseMPU(parse)
                     }
                     characteristic.equals(TypeSensor.BIO1.UUID_ECG_CHARACTERISTIC, ignoreCase = true) -> {
+                        Log.d("MMCORE-Parse", "Parse ECG")
                         parseECG(parse, TypeSensor.BIO2)
                     }
                     characteristic.equals(TypeSensor.BIO2.UUID_HR_CHARACTERISTIC, ignoreCase = true) -> {

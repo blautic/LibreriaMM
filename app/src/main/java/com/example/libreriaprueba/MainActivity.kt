@@ -409,6 +409,37 @@ fun GreetingPreview() {
             DatoEstadistica(40, 0.01271604560315609f, 0.018886910751461983f)), 1)
     )
     val zancadaDer = Model(fldSName = "Zancada derecha", fldSDescription = "", fldNDuration = 2, fldBPublico = 1, fldSVideo = null, fldSImage = null, fkTipo = 2, fldBRegresivo = 0, id = 1455, fkOwner = 44, fldSUrl = null, fldDTimeCreateTime = "2024-06-24T16:39:56", fldSStatus = 2, fldNProgress = null, movements = listOf( Movement(fldSLabel = "Zancada derecha", fldSDescription = "Zancada derecha", id = 1815, fkOwner = 1455, fldDTimeCreateTime = "2024-06-24T16:39:56" ), Movement(fldSLabel = "Other", fldSDescription = "Other", id = 1816, fkOwner = 1455, fldDTimeCreateTime = "2024-06-24T16:39:56" ) ), devices = listOf( Device(fldNNumberDevice = 1, id = 4634, fkPosition = 0, fkOwner = 1455, position = Position(fldSName = "Puntos", fldSDescription = "0 - Ninguna", id = 0 ) ) ), versions = listOf(), dispositivos = listOf(DispositivoSensor(id = 4634, fkPosicion = 0, fkSensor = 7, fkOwner = 1455 ), DispositivoSensor(id = 4635, fkPosicion = 0, fkSensor = 8, fkOwner = 1455 ), DispositivoSensor(id = 4636, fkPosicion = 0, fkSensor = 9, fkOwner = 1455 ), DispositivoSensor(id = 4637, fkPosicion = 0, fkSensor = 10, fkOwner = 1455 ), DispositivoSensor(id = 4638, fkPosicion = 0, fkSensor = 11, fkOwner = 1455 ), DispositivoSensor(id = 4639, fkPosicion = 0, fkSensor = 12, fkOwner = 1455 ), DispositivoSensor(id = 4640, fkPosicion = 0, fkSensor = 13, fkOwner = 1455 ), DispositivoSensor(id = 4641, fkPosicion = 0, fkSensor = 14, fkOwner = 1455 ), DispositivoSensor(id = 4642, fkPosicion = 0, fkSensor = 15, fkOwner = 1455 ), DispositivoSensor(id = 4643, fkPosicion = 0, fkSensor = 16, fkOwner = 1455 ), DispositivoSensor(id = 4644, fkPosicion = 0, fkSensor = 17, fkOwner = 1455 ), DispositivoSensor(id = 4645, fkPosicion = 0, fkSensor = 18, fkOwner = 1455 ), DispositivoSensor(id = 4646, fkPosicion = 0, fkSensor = 19, fkOwner = 1455 ), DispositivoSensor(id = 4647, fkPosicion = 0, fkSensor = 20, fkOwner = 1455 ), DispositivoSensor(id = 4648, fkPosicion = 0, fkSensor = 21, fkOwner = 1455 ), DispositivoSensor(id = 4649, fkPosicion = 0, fkSensor = 22, fkOwner = 1455 ), DispositivoSensor(id = 4650, fkPosicion = 0, fkSensor = 23, fkOwner = 1455 ), DispositivoSensor(id = 4651, fkPosicion = 0, fkSensor = 29, fkOwner = 1455 ), DispositivoSensor(id = 4652, fkPosicion = 0, fkSensor = 30, fkOwner = 1455 ), DispositivoSensor(id = 4653, fkPosicion = 0, fkSensor = 31, fkOwner = 1455 ), DispositivoSensor(id = 4654, fkPosicion = 0, fkSensor = 32, fkOwner = 1455 ), DispositivoSensor(id = 4655, fkPosicion = 0, fkSensor = 33, fkOwner = 1455 ), DispositivoSensor(id = 4656, fkPosicion = 0, fkSensor = 34, fkOwner = 1455 ), DispositivoSensor(id = 4657, fkPosicion = 0, fkSensor = 35, fkOwner = 1455 ), DispositivoSensor(id = 4658, fkPosicion = 0, fkSensor = 36, fkOwner = 1455 ), DispositivoSensor(id = 4659, fkPosicion = 0, fkSensor = 37, fkOwner = 1455 ), DispositivoSensor(id = 4660, fkPosicion = 0, fkSensor = 38, fkOwner = 1455 ), DispositivoSensor(id = 4661, fkPosicion = 0, fkSensor = 39, fkOwner = 1455 ), DispositivoSensor(id = 4662, fkPosicion = 0, fkSensor = 40, fkOwner = 1455 ), DispositivoSensor(id = 4663, fkPosicion = 0, fkSensor = 41, fkOwner = 1455 ), DispositivoSensor(id = 4664, fkPosicion = 0, fkSensor = 42, fkOwner = 1455 ), DispositivoSensor(id = 4665, fkPosicion = 0, fkSensor = 43, fkOwner = 1455 ), DispositivoSensor(id = 4666, fkPosicion = 0, fkSensor = 44, fkOwner = 1455 ), DispositivoSensor(id = 4667, fkPosicion = 0, fkSensor = 45, fkOwner = 1455 ), DispositivoSensor(id = 4668, fkPosicion = 0, fkSensor = 84, fkOwner = 1455 ), DispositivoSensor(id = 4669, fkPosicion = 0, fkSensor = 85, fkOwner = 1455 ) ), tuyo = 0)
+    val pruebaZiven = Model(
+        fldSName="prueba ziven",
+        fldSDescription="",
+        fldNDuration=2,
+        fldBPublico=1,
+        fkTipo=1,
+        id=1725,
+        fkOwner=57,
+        fldSUrl=null,
+        fldDTimeCreateTime="2023-06-05T18:51:12",
+        fldSStatus=2,
+        fldNProgress=null,
+        movements=listOf(
+            Movement( fldSLabel="prueba ziven", fldSDescription="prueba ziven", id=393, fkOwner=228, fldDTimeCreateTime="2023-06-05T18:51:12"),
+            Movement( fldSLabel="Other", fldSDescription="Other", id=394, fkOwner=228, fldDTimeCreateTime="2023-06-05T18:51:12") ),
+        devices=listOf(
+            Device( fldNNumberDevice=1, id=45, fkPosition=1, fkOwner=228, position= Position( fldSName="Right hand", fldSDescription="1 - Mano derecha", id=1))),
+        versions=listOf(
+            Version( fldFAccuracy= 0.9782609f, fldNEpoch=500, fldFLoss= 0.027077304f, fldSOptimizer="SGD", fldFLearningRate=0.0045f, id=539, fkOwner=228, fldDTimeCreateTime="2024-03-18T07:50:54" ) ),
+        dispositivos=listOf(
+            DispositivoSensor( id=13985, fkPosicion=5, fkSensor=1, fkOwner=1725),
+            DispositivoSensor( id=13985, fkPosicion=5, fkSensor=2, fkOwner=1725),
+            DispositivoSensor( id=13987, fkPosicion=5, fkSensor=3, fkOwner=1725),
+            DispositivoSensor( id=13988, fkPosicion=5, fkSensor=4, fkOwner=1725),
+            DispositivoSensor( id=13989, fkPosicion=5, fkSensor=5, fkOwner=1725),
+            DispositivoSensor( id=13990, fkPosicion=5, fkSensor=6, fkOwner=1725),
+            DispositivoSensor( id=13991, fkPosicion=5, fkSensor=24, fkOwner=1725),
+            DispositivoSensor( id=13992, fkPosicion=5, fkSensor=25, fkOwner=1725),
+            DispositivoSensor( id=13993, fkPosicion=5, fkSensor=26, fkOwner=1725),
+            DispositivoSensor( id=13994, fkPosicion=5, fkSensor=27, fkOwner=1725)),
+        tuyo=0)
     val mmCore by remember { mutableStateOf(MMCore(context = context, coroutineContext = coroutineContext))}
     var respuesta by remember { mutableFloatStateOf(0.5f) }
     var duracion by remember { mutableFloatStateOf(0f) }
@@ -453,12 +484,12 @@ fun GreetingPreview() {
                 imageProxy.close()
             }
         }
-        mmCore.setmodels(listOf(desplazamiento))
-        mmCore.startMotionDetector()
+        mmCore.setmodels(listOf(pruebaZiven))
+        //mmCore.startMotionDetector()
         //mmCore.setObjetsLabels(listOf(ObjetLabel.CHAIR, ObjetLabel.TV, ObjetLabel.CUP))
-        mmCore.addObjetLabel(ObjetLabel.TENNIS_RACKET)
+        //mmCore.addObjetLabel(ObjetLabel.TENNIS_RACKET)
         //mmCore.setExplicabilidad(0, stadisticsReves)
-        mmCore.addGenericSensor(4, listOf(TypeData.AccX, TypeData.AccY, TypeData.AccZ, TypeData.AI))
+        //mmCore.addGenericSensor(4, listOf(TypeData.AccX, TypeData.AccY, TypeData.AccZ, TypeData.AI))
         //mmCore.addGenericSensor(7, listOf(TypeData.HR))
         scope.launch {
             actualizarCache()
@@ -495,28 +526,9 @@ fun GreetingPreview() {
                     ConnectionState.CONNECTED -> {
                         status = 2
                         val tipo = mmCore.getSensorType(it.first)
-                        mmCore.onSensorChange(4).asLiveData().observeForever{
-                            if(it != null) {
-                                Log.d("Datos", "${it.find { pair -> pair.second == TypeData.AI }?.first}")
-                            }
-                        }
-                        /*mmCore.onSensorChange(1, TypeData.HR).asLiveData().observeForever{ it1 ->
-                            Log.d("HR", "${it1.first}")
-                            if(hrs.size > 300){
-                                hrs.removeAt(0)
-                            }
-                            hrs.add(it1.first)
-                        }
-                        mmCore.onSensorChange(1, TypeData.Ecg).asLiveData().observeForever{ it1 ->
-                            if(ecgs.size > 300){
-                                ecgs.removeAt(0)
-                            }
-                            ecgs.add(it1.first)
-                            Log.d("ECG", "${it1.first}")
-                        }*/
                         Log.d("TipoSensor", tipo.name)
                         mmCore.enableAllCache(true)
-                        mmCore.startMotionDetectorIndex(listOf(0))
+                        //mmCore.startMotionDetectorIndex(listOf(0))
                     }
 
                     ConnectionState.DISCONNECTING -> status = 1
@@ -557,11 +569,6 @@ fun GreetingPreview() {
             cacheDetector = it
         }
     }
-    /*mmCore.onPersonsDetected().asLiveData().observeForever {
-        if(it != null){
-            result = it
-        }
-    }*/
     LibreriaPruebaTheme {
         Box{
             CameraPreview(
@@ -585,59 +592,6 @@ fun GreetingPreview() {
                         personaCache = personCache,
                         raqueta = raqueta
                     )
-                    /*Canvas(modifier = Modifier.wrapContentSize()){
-                        drawLine(
-                            color = Color.White,
-                            start = Offset(100f, 100f),
-                            end = Offset(100f, 400f),
-                            strokeWidth = 10f
-                        )
-                        drawLine(
-                            color = Color.White,
-                            start = Offset(1000f, 100f),
-                            end = Offset(1000f, 400f),
-                            strokeWidth = 10f
-                        )
-                        drawLine(
-                            color = Color.White,
-                            start = Offset(100f, 100f),
-                            end = Offset(1000f, 100f),
-                            strokeWidth = 10f
-                        )
-                        drawLine(
-                            color = Color.White,
-                            start = Offset(100f, 400f),
-                            end = Offset(1000f, 400f),
-                            strokeWidth = 10f
-                        )
-                        drawRect(
-                            color = Color.Black,
-                            topLeft = Offset(100f, 100f),
-                            size = Size(900f, 300f)
-                        )
-                        val maxHr = 150f / (hrs.maxOfOrNull { it }?: 0f)
-                        hrs.forEachIndexed{ index, valor ->
-                            if(index >= 1){
-                                drawLine(
-                                    color = Color.White,
-                                    start = Offset(100f+(3*(index-1)), 250f+(hrs[index-1]*maxHr)),
-                                    end = Offset(100f+(3*index), 250f+(valor*maxHr)),
-                                    strokeWidth = 5f
-                                )
-                            }
-                        }
-                        val maxEcg = 150f / (ecgs.maxOfOrNull { it }?: 0f)
-                        ecgs.forEachIndexed{ index, valor ->
-                            if(index >= 1){
-                                drawLine(
-                                    color = Color.Red,
-                                    start = Offset(100f+(3*(index-1)), 250f+(ecgs[index-1]*maxEcg)),
-                                    end = Offset(100f+(3*index), 250f+(valor*maxEcg)),
-                                    strokeWidth = 5f
-                                )
-                            }
-                        }
-                    }*/
                 }
             }
             Column(
@@ -648,7 +602,8 @@ fun GreetingPreview() {
                 verticalArrangement = Arrangement.Bottom
             ) {
                 Button(onClick = {
-                    mmCore.correccionesIniciales(0)
+                    val captura = mmCore.getCapture(0)
+                    Log.d("MMCORE", "$captura")
                 }, modifier = Modifier.wrapContentHeight()) {
                     Icon(
                         painter = painterResource(id = android.R.drawable.ic_dialog_alert),

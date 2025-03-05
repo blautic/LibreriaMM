@@ -16,6 +16,7 @@ class SimpleDeviceBluetoothManager(
     bluetoothPeripheralCallback: BluetoothPeripheralCallback,
     typeSensor: TypeSensor,
 ) {
+    var enableSensors = GenericDevice.EnableSensors()
     //AQUI AHORA ES CUANDO HAY QUE HACER LA DIFERENCIACIÓN DEL TIPO PERO SOLO EN ALGUNAS COSAS.
     private val blePeripheralCallback: BlePeripheralCallback = object : BlePeripheralCallback() {
 
@@ -37,20 +38,61 @@ class SimpleDeviceBluetoothManager(
                     enableNotify(peripheral, UUID.fromString(typeSensor.UUID_ECG_CHARACTERISTIC), true, typeSensor)
                 }
                 TypeSensor.BIO2 -> {
-                    // Acelerometro
-                    write(peripheral, UUID.fromString(typeSensor.UUID_TAG_OPER), byteArrayOf(0), typeSensor)
-                    enableNotify(peripheral, UUID.fromString(typeSensor.UUID_ACCELEROMETER_CHARACTERISTIC), true, typeSensor)
+                    if(enableSensors.mpu) {
+                        // Acelerometro
+                        write(
+                            peripheral,
+                            UUID.fromString(typeSensor.UUID_TAG_OPER),
+                            byteArrayOf(0),
+                            typeSensor
+                        )
+                        enableNotify(
+                            peripheral,
+                            UUID.fromString(typeSensor.UUID_ACCELEROMETER_CHARACTERISTIC),
+                            true,
+                            typeSensor
+                        )
+                    }
                     // Estado
                     write(peripheral, UUID.fromString(typeSensor.UUID_TAG_OPER), byteArrayOf(12), typeSensor)
                     enableNotify(peripheral, UUID.fromString(typeSensor.UUID_STATUS_CHARACTERISTIC), true, typeSensor)
                     // EMG
-                    write(peripheral, UUID.fromString(typeSensor.UUID_CH_FR), byteArrayOf(15, 2), typeSensor)
-                    write(peripheral, UUID.fromString(typeSensor.UUID_TAG_OPER), byteArrayOf(4), typeSensor)
-                    write(peripheral, UUID.fromString(typeSensor.UUID_CH_FR), byteArrayOf(15, 2), typeSensor)
-                    write(peripheral, UUID.fromString(typeSensor.UUID_TAG_OPER), byteArrayOf(6), typeSensor)
-                    //write(peripheral, UUID.fromString(typeSensor.UUID_TAG_OPER), byteArrayOf(5), typeSensor)
-                    enableNotify(peripheral, UUID.fromString(typeSensor.UUID_ECG_CHARACTERISTIC), true, typeSensor)
-                    enableNotify(peripheral, UUID.fromString(typeSensor.UUID_HR_CHARACTERISTIC), true, typeSensor)
+                    if(enableSensors.emg) {
+                        write(
+                            peripheral,
+                            UUID.fromString(typeSensor.UUID_CH_FR),
+                            byteArrayOf(15, 2),
+                            typeSensor
+                        )
+                        write(
+                            peripheral,
+                            UUID.fromString(typeSensor.UUID_TAG_OPER),
+                            byteArrayOf(4),
+                            typeSensor
+                        )
+                        //write(peripheral, UUID.fromString(typeSensor.UUID_TAG_OPER), byteArrayOf(5), typeSensor)
+                        enableNotify(
+                            peripheral,
+                            UUID.fromString(typeSensor.UUID_ECG_CHARACTERISTIC),
+                            true,
+                            typeSensor
+                        )
+                    }
+                    // HR
+                    if(enableSensors.hr) {
+                        write(
+                            peripheral,
+                            UUID.fromString(typeSensor.UUID_TAG_OPER),
+                            byteArrayOf(6),
+                            typeSensor
+                        )
+                        enableNotify(
+                            peripheral,
+                            UUID.fromString(typeSensor.UUID_HR_CHARACTERISTIC),
+                            true,
+                            typeSensor
+                        )
+                    }
                 }
                 TypeSensor.PIKKU -> {
                     // Estado

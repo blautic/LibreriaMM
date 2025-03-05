@@ -28,6 +28,7 @@ import com.example.libreriamm.entity.ObjetoEstadistica
 import com.example.libreriamm.entity.ResultadoEstadistica
 import com.example.libreriamm.motiondetector.MotionDetector
 import com.example.libreriamm.motiondetector.PositionDetector
+import com.example.libreriamm.sensor.GenericDevice
 import com.example.libreriamm.sensor.SensorsManager
 import com.example.libreriamm.sensor.TypeData
 import com.example.libreriamm.sensor.TypeSensor
@@ -212,11 +213,12 @@ class MMCore(val context: Context, val coroutineContext: CoroutineContext): Pose
         }
         deviceManager.setListSize(num)
     }
-    private fun startConnectDevice(typeSensors: List<TypeSensor>, position: Int){
+    private fun startConnectDevice(typeSensors: List<TypeSensor>, position: Int, enableSensors: GenericDevice.EnableSensors){
         if(position < deviceManager.devices.size) {
             deviceManager.buscando = true
             deviceManager.sensores = typeSensors
             deviceManager.indexConn = position
+            deviceManager.enableSensors = enableSensors
             deviceManager.startScan()
         }
     }
@@ -1481,7 +1483,12 @@ class MMCore(val context: Context, val coroutineContext: CoroutineContext): Pose
         deviceManager.getSensorType(index)
     fun startConnectDevice(posicion: Int) {
         if(posicion < sensoresPosicion.size){
-            startConnectDevice(sensoresPosicion[posicion].tipoSensor, posicion)
+            val listaSensoresCombinados = modelos.flatMap { it1 -> it1.dispositivos.map { it2 -> if(it2.fkPosicion == sensoresPosicion[posicion].posicion) it2.fkSensor else null } }.filterNotNull().distinct()
+            startConnectDevice(sensoresPosicion[posicion].tipoSensor, posicion, GenericDevice.EnableSensors(
+                mpu = listaSensoresCombinados.any { it1 -> it1 in listOf(1, 2, 3, 4, 5, 6, 102) },
+                emg = listaSensoresCombinados.any { it1 -> it1 in listOf(24, 25, 26, 27) },
+                hr = listaSensoresCombinados.any { it1 -> it1 in listOf(101) }
+            ))
         }
     }
     fun stopConnectDevice(){
