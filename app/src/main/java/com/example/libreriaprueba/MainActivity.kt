@@ -484,7 +484,7 @@ fun GreetingPreview() {
                 imageProxy.close()
             }
         }
-        mmCore.setmodels(listOf(pruebaZiven))
+        mmCore.setmodels(listOf(zancadaDer))
         //mmCore.startMotionDetector()
         //mmCore.setObjetsLabels(listOf(ObjetLabel.CHAIR, ObjetLabel.TV, ObjetLabel.CUP))
         //mmCore.addObjetLabel(ObjetLabel.TENNIS_RACKET)
@@ -602,8 +602,7 @@ fun GreetingPreview() {
                 verticalArrangement = Arrangement.Bottom
             ) {
                 Button(onClick = {
-                    val captura = mmCore.getCapture(0)
-                    Log.d("MMCORE", "$captura")
+                    mmCore.startMotionDetector()
                 }, modifier = Modifier.wrapContentHeight()) {
                     Icon(
                         painter = painterResource(id = android.R.drawable.ic_dialog_alert),

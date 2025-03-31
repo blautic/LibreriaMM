@@ -4,6 +4,7 @@ import android.os.Build
 import android.util.Log
 import androidx.annotation.RequiresApi
 import com.example.libreriamm.camara.Person
+import com.example.libreriamm.entity.DatosCaptura
 import com.example.libreriamm.entity.Model
 import com.google.firebase.ml.modeldownloader.CustomModel
 import com.google.firebase.ml.modeldownloader.CustomModelDownloadConditions
@@ -20,7 +21,6 @@ import timber.log.Timber
 import java.time.Duration
 import java.time.LocalDateTime
 import kotlin.math.max
-import kotlin.math.min
 
 data class MoveNetData(
     var pointX: Float = 0f,
@@ -35,8 +35,8 @@ class MotionDetector(private val model: Model, private val tipo: Int) {
         fun onCorrectMotionRecognized(correctProb: Float, datasList: Array<Array<Array<Array<FloatArray>>>>)
         fun onOutputScores(outputScores: FloatArray, datasInferencia: List<Triple<Int, List<Pair<Int, Float>>, Int>>)
         fun onIncorrectMotionRecognized(mensaje: String)
-        fun onTimeCorrect(time: Float)
-        fun onIntentRecognized()
+        fun onTimeCorrect(time: Float, datosCaptura: List<DatosCaptura>)
+        fun onIntentRecognized(datosCaptura: List<DatosCaptura>)
     }
 
     private val coroutineScope = CoroutineScope(Dispatchers.Main)
@@ -137,7 +137,12 @@ class MotionDetector(private val model: Model, private val tipo: Int) {
     }
 
     @RequiresApi(Build.VERSION_CODES.O)
-    fun inference(datasList: Array<Array<Array<Array<FloatArray>>>>, inferenceCounter: Long, datosExpl: List<Triple<Int, List<Pair<Int, Float>>, Int>> = listOf()) {
+    fun inference(
+        datosCaptura: List<DatosCaptura>,
+        datasList: Array<Array<Array<Array<FloatArray>>>>,
+        inferenceCounter: Long,
+        datosExpl: List<Triple<Int, List<Pair<Int, Float>>, Int>> = listOf()
+    ) {
         synchronized(lock) {
             Log.d("MMCORE", "inferencia activa... $isStarted")
             inferenceInterface?.takeIf { isStarted }?.let { interpreter ->
@@ -214,7 +219,7 @@ class MotionDetector(private val model: Model, private val tipo: Int) {
                                     (Duration.between(
                                         inicioT,
                                         LocalDateTime.now()
-                                    ).toMillis()) / 1000f
+                                    ).toMillis()) / 1000f, datosCaptura
                                 )
                             }
                             estado = max(estado, 2)
@@ -226,20 +231,20 @@ class MotionDetector(private val model: Model, private val tipo: Int) {
                                     (Duration.between(
                                         inicioT,
                                         LocalDateTime.now()
-                                    ).toMillis()) / 1000f
+                                    ).toMillis()) / 1000f, datosCaptura
                                 )
                             }
                         }
                         else -> { // < 50 A
                             if(estado == 2){
-                                motionDetectorListener?.onIntentRecognized()
+                                motionDetectorListener?.onIntentRecognized(datosCaptura)
                             }
                             if(estado == 3){
                                 motionDetectorListener?.onTimeCorrect(
                                     (Duration.between(
                                         inicioT,
                                         LocalDateTime.now()
-                                    ).toMillis()) / 1000f
+                                    ).toMillis()) / 1000f, datosCaptura
                                 )
                             }
                             estado = 1

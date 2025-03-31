@@ -24,6 +24,7 @@ import android.os.SystemClock
 import android.util.Log
 import androidx.annotation.VisibleForTesting
 import androidx.camera.core.ImageProxy
+import com.example.libreriamm.camara.BodyPart.Companion.getAdyacentes
 import com.google.mediapipe.framework.image.BitmapImageBuilder
 import com.google.mediapipe.framework.image.MPImage
 import com.google.mediapipe.tasks.core.BaseOptions
@@ -31,6 +32,8 @@ import com.google.mediapipe.tasks.core.Delegate
 import com.google.mediapipe.tasks.vision.core.RunningMode
 import com.google.mediapipe.tasks.vision.poselandmarker.PoseLandmarker
 import com.google.mediapipe.tasks.vision.poselandmarker.PoseLandmarkerResult
+import kotlin.math.acos
+import kotlin.math.sqrt
 
 class PoseLandmarkerHelper(
     var minPoseDetectionConfidence: Float = DEFAULT_POSE_DETECTION_CONFIDENCE,
@@ -152,13 +155,35 @@ class PoseLandmarkerHelper(
                     if(keypoints.isNotEmpty()) {
                         score /= keypoints.size
                     }
+                    // Modifico los valores de cada angulo
+                    keypoints.forEach { kp ->
+                        val partes = getAdyacentes(kp.bodyPart)
+                        if(partes != null){
+                            val puntoA = keypoints.first { it.bodyPart == partes.first }
+                            val puntoC = keypoints.first { it.bodyPart == partes.second }
+                            kp.angle = calcularAnguloEnB(puntoA.coordinate, kp.coordinate, puntoC.coordinate).toFloat()
+                            //Log.d("ANGULOS", "Angulo de ${kp.bodyPart.name}: ${kp.angle}")
+                        }
+                    }
                     res.add(Person(keypoints.sortedBy{ it.bodyPart.position }, score))
                 }
             }
         }
         poseLandmarkerHelperListener?.onResultsPersons(res)
     }
+    private fun calcularAnguloEnB(A: PointF, B: PointF, C: PointF): Double {
+        val AB = Pair(A.x - B.x, A.y - B.y)
+        val BC = Pair(C.x - B.x, C.y - B.y)
 
+        val productoEscalar = AB.first * BC.first + AB.second * BC.second
+        val magnitudAB = sqrt(AB.first * AB.first + AB.second * AB.second)
+        val magnitudBC = sqrt(BC.first * BC.first + BC.second * BC.second)
+
+        val cosTheta = productoEscalar / (magnitudAB * magnitudBC)
+
+        val degrees = Math.toDegrees(acos(cosTheta.toDouble()))
+        return degrees
+    }
     // Return errors thrown during detection to this PoseLandmarkerHelper's
     // caller
     private fun returnLivestreamError(error: RuntimeException) {

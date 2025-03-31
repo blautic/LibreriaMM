@@ -33,6 +33,19 @@ enum class BodyPart(val position: Int) {
     companion object{
         private val map = values().associateBy(BodyPart::position)
         fun fromInt(position: Int): BodyPart = map.getValue(position)
+        fun getAdyacentes(centro: BodyPart): Pair<BodyPart, BodyPart>?{
+            return when(centro){
+                LEFT_SHOULDER -> Pair(LEFT_HIP, LEFT_ELBOW)
+                RIGHT_SHOULDER -> Pair(RIGHT_HIP, RIGHT_ELBOW)
+                LEFT_ELBOW -> Pair(LEFT_SHOULDER, LEFT_WRIST)
+                RIGHT_ELBOW -> Pair(RIGHT_SHOULDER, RIGHT_WRIST)
+                LEFT_HIP -> Pair(LEFT_SHOULDER, LEFT_KNEE)
+                RIGHT_HIP -> Pair(RIGHT_SHOULDER, RIGHT_KNEE)
+                LEFT_KNEE -> Pair(LEFT_HIP, LEFT_ANKLE)
+                RIGHT_KNEE -> Pair(RIGHT_HIP, RIGHT_ANKLE)
+                else -> null
+            }
+        }
         fun fromMediaPipe(position: Int): BodyPart?{
             return when(position){
                 0 -> NOSE

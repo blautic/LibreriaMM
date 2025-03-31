@@ -3,26 +3,21 @@ package com.example.libreriamm
 import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.Matrix
-import android.graphics.RectF
 import android.os.Build
 import android.util.Log
 import androidx.annotation.RequiresApi
-import androidx.camera.core.CameraSelector
 import androidx.camera.core.ExperimentalGetImage
 import androidx.camera.core.ImageProxy
 import androidx.core.content.ContextCompat.getString
-import androidx.work.Data
 import com.example.libreriamm.camara.BodyPart
-import com.example.libreriamm.camara.Device
 import com.example.libreriamm.camara.KeyPoint
-import com.example.libreriamm.camara.ModelType
-import com.example.libreriamm.camara.MoveNet
 import com.example.libreriamm.camara.ObjetLabel
 import com.example.libreriamm.camara.Objeto
 import com.example.libreriamm.camara.Person
 import com.example.libreriamm.camara.PointF
 import com.example.libreriamm.camara.PoseLandmarkerHelper
 import com.example.libreriamm.camara.YuvToRgbConverter
+import com.example.libreriamm.entity.DatosCaptura
 import com.example.libreriamm.entity.Model
 import com.example.libreriamm.entity.ObjetoEstadistica
 import com.example.libreriamm.entity.ResultadoEstadistica
@@ -41,16 +36,11 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
-import org.koin.core.time.TimeInMillis
 import java.time.Duration
 import java.time.LocalDateTime
 import java.time.ZoneOffset
-import java.time.temporal.TemporalUnit
 import kotlin.coroutines.CoroutineContext
-import kotlin.math.PI
 import kotlin.math.abs
-import kotlin.math.atan
-import kotlin.math.ceil
 import kotlin.math.floor
 import kotlin.math.max
 import kotlin.math.min
@@ -88,6 +78,8 @@ class MMCore(val context: Context, val coroutineContext: CoroutineContext): Pose
     private var modelosStatus: MutableList<Int> = mutableListOf()
     private var frecuencias: MutableList<MutableList<Int>> = mutableListOf()
     private var cantidades: MutableList<MutableList<Int>> = mutableListOf()
+    private val _resultsFlow = MutableStateFlow<List<DatosCaptura>?>(null)
+    private val resultsFlow get() = _resultsFlow.asStateFlow()
     private val _motionDetectorCorrectFlow = MutableStateFlow<Pair<Int, Float>?>(null)
     private val motionDetectorCorrectFlow get() = _motionDetectorCorrectFlow.asStateFlow()
     private val _motionDetectorIncorrectFlow = MutableStateFlow<String?>(null)
@@ -255,7 +247,7 @@ class MMCore(val context: Context, val coroutineContext: CoroutineContext): Pose
         val normalizedLandmarks = landmarks.map {
             val normalizedX = (it.coordinate.x - poseCenter.x) / getPoseSize(landmarks)
             val normalizedY = (it.coordinate.y - poseCenter.y) / getPoseSize(landmarks)
-            KeyPoint(it.bodyPart, PointF(normalizedX, normalizedY), 0f)
+            KeyPoint(it.bodyPart, PointF(normalizedX, normalizedY), 0f, it.angle)
         }
         return normalizedLandmarks
     }
@@ -555,7 +547,11 @@ class MMCore(val context: Context, val coroutineContext: CoroutineContext): Pose
                             if(!optimizado) {
                                 if (salida[0] < 0.5 && modelos[index].fldBRegresivo == 1) {
                                     if (series[index].isNotEmpty()) {
-                                        motionDetector.second.inference(series[index][series[index].size / 2], -1L)
+                                        motionDetector.second.inference(
+                                            listOf(),
+                                            series[index][series[index].size / 2],
+                                            -1L
+                                        )
                                         series[index].clear()
                                     }
                                 }
@@ -564,7 +560,8 @@ class MMCore(val context: Context, val coroutineContext: CoroutineContext): Pose
                     }
                 }
 
-                override fun onIntentRecognized() {
+                override fun onIntentRecognized(datosCaptura: List<DatosCaptura>) {
+                    _resultsFlow.value = datosCaptura
                     _motionIntentFlow.value = null
                     _motionIntentFlow.value = index
                 }
@@ -574,7 +571,8 @@ class MMCore(val context: Context, val coroutineContext: CoroutineContext): Pose
                     _motionDetectorIncorrectFlow.value = if(mensaje.length > 1) mensaje else null
                 }
 
-                override fun onTimeCorrect(time: Float) {
+                override fun onTimeCorrect(time: Float, datosCaptura: List<DatosCaptura>) {
+                    _resultsFlow.value = datosCaptura
                     _motionDetectorTimeFlow.value = null
                     _motionDetectorTimeFlow.value = Pair(index, time)
                 }
@@ -604,11 +602,11 @@ class MMCore(val context: Context, val coroutineContext: CoroutineContext): Pose
 
                     }
 
-                    override fun onTimeCorrect(time: Float) {
+                    override fun onTimeCorrect(time: Float, datosCaptura: List<DatosCaptura>) {
 
                     }
 
-                    override fun onIntentRecognized() {
+                    override fun onIntentRecognized(datosCaptura: List<DatosCaptura>) {
 
                     }
                 })
@@ -624,11 +622,43 @@ class MMCore(val context: Context, val coroutineContext: CoroutineContext): Pose
     private fun getVariabilidad(est: ObjetoEstadistica): Float{
         return (est.datos.maxOf { it1 -> it1.media } - est.datos.minOf { it1 -> it1.media })/est.datos.size
     }
+    private fun recibeDatosCaptura(
+        moveNetCacheCopy: List<Triple<Person, Person, LocalDateTime>>,
+        modelosCopy: List<Model>
+    ): List<DatosCaptura>{
+        val cache = moveNetCacheCopy.map { it.first }.flatMap { it.keyPoints }.groupBy { it.bodyPart }
+        val res = mutableListOf<DatosCaptura>()
+        val duracionMax = if(modelosCopy.isNotEmpty()) modelosCopy.maxOf { it1 -> it1.fldNDuration } else 2
+        TypeData.entries.forEach{
+            res.add(DatosCaptura(it, null, mutableListOf()))
+        }
+        deviceManager.devices.forEach {
+            it?.typeSensor?.Sensors?.forEachIndexed { index, sens ->
+                val datos = it.getDataCache(index, duracionMax*sens.fs).map { it1 -> it1.first }
+                res.first { it1 -> it1.sensor == sens }.valores = datos.takeLast(duracionMax*sens.fs).toMutableList()
+            }
+        }
+        cache.forEach { (bp, kp) ->
+            val typeDataX = TypeData.valueOf("${bp.name}_X")
+            res.first { it1 -> it1.sensor == typeDataX }.valores = kp.map { it.coordinate.x }.takeLast(typeDataX.fs*duracionMax).toMutableList()
+            val typeDataY = TypeData.valueOf("${bp.name}_Y")
+            res.first { it1 -> it1.sensor == typeDataY }.valores = kp.map { it.coordinate.y }.takeLast(typeDataY.fs*duracionMax).toMutableList()
+            val typeDataAng = TypeData.entries.find { it2 -> it2.name == "${bp.name}_ANGLE" }
+            if(typeDataAng != null) {
+                res.first { it1 -> it1.sensor == typeDataAng }.valores = kp.map { it.angle }.takeLast(typeDataAng.fs*duracionMax).toMutableList()
+                Log.d("ANGULOS", "Angulo de ${bp.name}: ${kp.map { it.angle }}")
+            }else{
+                Log.d("ANGULOS", "Angulo de ${bp.name} no encontrado")
+            }
+        }
+        return res
+    }
     private suspend fun read(){
         while(true) {
             val modelosCopy = modelos.toList()
             val indicesCopy = indices.toList()
             val moveNetCacheCopy = moveNetCache.toList()
+            val datosCaptura = recibeDatosCaptura(moveNetCacheCopy, modelosCopy)
             if (modelosStatus.filter { it1 -> it1 == 0 }.isNotEmpty()) {
                 val inicioD = LocalDateTime.now()
                 Log.d("MMCORE", "Preparando inferencia ${inferenceCounter[0]}")
@@ -856,6 +886,7 @@ class MMCore(val context: Context, val coroutineContext: CoroutineContext): Pose
                                         "Inferir modelo ($index) ${datasList.map { it1 -> it1.map { it2 -> it2.map { it3 -> it3.size } } }}"
                                     )
                                     motionDetectors[index].first.inference(
+                                        datosCaptura,
                                         datasList,
                                         inferenceCounter[index],
                                         datas
@@ -910,6 +941,7 @@ class MMCore(val context: Context, val coroutineContext: CoroutineContext): Pose
     fun onObjectDetected() = objectsRawFlow
     fun onCacheDetector() = cacheDetectorFlow
     fun onMotionDetectorCorrectChange() = motionDetectorCorrectFlow
+    fun onResultsDetector() = resultsFlow
     fun onExplicabilidadDatasChange() = explicabilidadDatasFlow
     fun onExplicabilidadChange() = explicabilidadFlow
     fun onMotionDetectorIncorrectChange() = motionDetectorIncorrectFlow
@@ -933,7 +965,7 @@ class MMCore(val context: Context, val coroutineContext: CoroutineContext): Pose
     }
     fun onDataInferedChange() = dataInferedFlow
 
-    fun getExplicabilidad(index: Int): String{
+    fun getExplicabilidad(index: Int): Pair<String, Int>{
         val UMBRAL_IMPORTANCIA = 0.5f
         val POSICION_QUIETO = 0.001f
         val UMBRAL_MOVIMIENTO = 0.1
@@ -941,6 +973,7 @@ class MMCore(val context: Context, val coroutineContext: CoroutineContext): Pose
         val crecimientoX = estadisticas[index].filter { it1 -> it1.idPosicion == 84 }.flatMap{ it1 -> it1.datos.map { it2 -> it2.media }.take(it1.datos.size / 2) }.sum()
         val crecimientoY = estadisticas[index].filter { it1 -> it1.idPosicion == 85 }.flatMap{ it1 -> it1.datos.map { it2 -> it2.media }.take(it1.datos.size / 2) }.sum()
         var res = ""
+        var resVal = 0
         if(resultados.isNotEmpty()){
             var resultado = resultados[0]
             val maximo = abs(resultado.valor) * UMBRAL_IMPORTANCIA
@@ -970,6 +1003,23 @@ class MMCore(val context: Context, val coroutineContext: CoroutineContext): Pose
                 23, 45 -> getString(context, R.string.pieI)
                 84, 85 -> getString(context, R.string.cuerpo)
                 else -> {""}
+            }
+            resVal += when(resultado.sensor){
+                7,8,9,10,11,29,30,31,32,33 -> 1000
+                12, 34 -> 2000
+                13, 35 -> 300
+                14, 36 -> 400
+                15, 37 -> 500
+                16, 38 -> 600
+                17, 39 -> 700
+                18, 40 -> 800
+                19, 41 -> 900
+                20, 42 -> 1000
+                21, 43 -> 1100
+                22, 44 -> 1200
+                23, 45 -> 1300
+                84, 85 -> 1400
+                else -> {0}
             }
             res += " "+ when (resultado.sensor) {
                 in 7..19 ->
@@ -1013,6 +1063,56 @@ class MMCore(val context: Context, val coroutineContext: CoroutineContext): Pose
                         if(resultado.valor > 0) getString(context, R.string.arriba) else getString(context, R.string.abajo)
                 else -> {""}
             }
+            resVal += when (resultado.sensor) {
+                in 7..19 ->
+                    if(resultado.correccion >= 1)
+                        50
+                    else
+                        if(resultado.correccion > 0)
+                            60
+                        else
+                            if(resultado.valor > 0)
+                                30
+                            else
+                                40
+                in 20..23 ->
+                    if(resultado.correccion >= 1)
+                        70
+                    else
+                        if(resultado.correccion > 0)
+                            80
+                        else
+                            if(resultado.valor > 0)
+                                30
+                            else
+                                40
+                in 29..43 ->
+                    if(resultado.valor > 0)
+                        10
+                    else
+                        20
+                in 44..45 ->
+                    if(modelos[index].fldSEtiquetaPos == "Frontal") {
+                        if (resultado.valor > 0)
+                            90
+                        else
+                            0
+                    }else{
+                        if(resultado.valor > 0)
+                            10
+                        else
+                            20
+                    }
+                84 -> if(abs(crecimientoX) > UMBRAL_MOVIMIENTO)
+                    if(crecimientoX > 0) 40 else 30
+                else
+                    if(resultado.valor > 0) 40 else 30
+                85 -> if(abs(crecimientoY) > UMBRAL_MOVIMIENTO)
+                    if(crecimientoY > 0) 10 else 20
+                else
+                    if(resultado.valor > 0) 10 else 20
+                else -> {0}
+            }
             res = when(resultado.instante){
                 0 -> getString(context, R.string.inicioL) + " " + res
                 1 -> if(abs(resultado.variabilidad) > POSICION_QUIETO)
@@ -1026,8 +1126,9 @@ class MMCore(val context: Context, val coroutineContext: CoroutineContext): Pose
                         getString(context, R.string.medio1a)+" "+res
                 else -> {""}
             }
+            resVal += resultado.instante + 1
         }
-        return res
+        return Pair(res, resVal)
     }
     fun getExplicabilidadDatasAsinc(index: Int){
         scope.launch {
@@ -1036,7 +1137,7 @@ class MMCore(val context: Context, val coroutineContext: CoroutineContext): Pose
     }
     fun getExplicabilidadAsinc(index: Int){
         scope.launch {
-            _explicabilidadFlow.value = getExplicabilidad(index)
+            _explicabilidadFlow.value = getExplicabilidad(index).first
         }
     }
     fun getExplicabilidadDatas(index: Int): List<ResultadoEstadistica>{ // Posicion, (Sensor, Instante, Valor)
@@ -1564,7 +1665,10 @@ class MMCore(val context: Context, val coroutineContext: CoroutineContext): Pose
                 sensores.contains(TypeData.GyrX) ||
                 sensores.contains(TypeData.GyrY) ||
                 sensores.contains(TypeData.GyrZ) ||
-                sensores.contains(TypeData.AI)
+                sensores.contains(TypeData.AI) ||
+                sensores.contains(TypeData.ANGULO_ROTACION) ||
+                sensores.contains(TypeData.ANGULO_FLEXION) ||
+                sensores.contains(TypeData.ANGULO_FLEXION)
         if (mpu && !ecg && !emg) {
             listaSens.add(TypeSensor.PIKKU)
         }
